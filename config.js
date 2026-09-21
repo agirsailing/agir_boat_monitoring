@@ -9,6 +9,7 @@ export const TOPICS = Object.freeze({
   stopResponse: "agir_gui/rsp/stop_recording",
 });
 
+
 export const SETTINGS = Object.freeze({
   dataTimeoutMs: 3000,
   recordingTimeoutMs: 5000,
