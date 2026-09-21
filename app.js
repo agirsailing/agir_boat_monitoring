@@ -64,10 +64,21 @@ function render() {
   el("start").disabled = demo || !state.canCommand("start");
   el("stop").disabled = demo || !state.canCommand("stop");
   const active = linkStatus !== "disconnected";
-  for (const id of ["connect", "broker", "username", "password"]) el(id).disabled = active;
-  el("disconnect").disabled = !active;
-  el("demo-banner").hidden = !demo;
+  for (const id of ["connect", "broker", "username", "password"]) {
+    if (el(id)) el(id).disabled = active;
+  }
+  if (el("disconnect")) el("disconnect").disabled = !active;
+  if (el("demo-banner")) el("demo-banner").hidden = !demo;
   setText("demo", demo ? "Exit demo" : "Explore demo");
+
+  // Toggle pages
+  const isLogged = active || demo;
+  if (el("login-overlay")) el("login-overlay").hidden = isLogged;
+  if (el("app-content")) el("app-content").hidden = !isLogged;
+  
+  if (isLogged && el("current-user")) {
+    setText("current-user", demo ? "Demo user" : el("username").value);
+  }
 }
 
 function endDemo() {
@@ -83,7 +94,6 @@ el("connect-form").addEventListener("submit", event => {
   endDemo();
   try {
     connection.connect(el("broker").value, el("username").value, el("password").value);
-    el("password").value = "";
   } catch (error) {
     connection.disconnect();
     connectionError(error.message);
@@ -93,8 +103,6 @@ el("connect-form").addEventListener("submit", event => {
 
 el("disconnect").addEventListener("click", () => {
   connection.disconnect();
-  el("password").value = "";
-  el("username").value = "";
   feedback("Disconnected. No recording commands will be sent.");
 });
 
@@ -124,7 +132,6 @@ el("demo").addEventListener("click", () => {
     feedback("Connect and wait for the boat's recording state.");
   } else {
     connection.disconnect();
-    el("password").value = "";
     connectionError("");
     demo = true;
     const tick = () => {
@@ -157,8 +164,6 @@ setInterval(() => {
 window.addEventListener("pagehide", () => {
   endDemo();
   connection.disconnect();
-  el("password").value = "";
-  el("username").value = "";
 });
 render();
 

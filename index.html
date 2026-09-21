@@ -8,46 +8,74 @@
   <title>Ågir · Boat dashboard</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./login.css">
   <script defer src="https://cdn.jsdelivr.net/npm/mqtt@5.15.2/dist/mqtt.min.js"></script>
   <script type="module" src="./app.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="./" aria-label="Ågir dashboard home"><span class="brand-icon">Å</span><span>ÅGIR <small>SAILING TEAM</small></span></a>
-    <span class="topbar-note">BOAT DASHBOARD <span class="edition">/ 01</span></span>
-    <span id="connection-status" class="pill" role="status">Disconnected</span>
-  </header>
-  <main>
-    <div class="page-heading"><div><p class="eyebrow">FROM THE BOAT TO THE SHORE</p><h1>A view from the water.</h1><p class="subtitle">Live instruments and recording control.</p></div><button id="demo" class="button secondary">Explore demo</button></div>
-    <div id="demo-banner" class="demo-banner" hidden>DEMO MODE · Simulated values. Recording controls are disabled.</div>
-    <div class="layout">
-      <section class="instruments" aria-label="Boat instruments">
-        <div class="section-heading"><h2>Live overview</h2><span id="freshness" class="muted">Waiting for the boat</span></div>
-        <div class="metric-grid">
-          <article class="metric main-metric"><p class="eyebrow">SPEED OVER GROUND</p><div class="reading"><span id="sog">—</span><span class="unit">m/s</span></div><p>GPS ground speed</p><div class="metric-line"></div></article>
-          <article class="metric"><p class="eyebrow">ESTIMATED HEIGHT</p><div class="reading"><span id="height">—</span><span class="unit">m</span></div><p>Waterline reference below the centre of mass</p></article>
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-box panel">
+      <h2>ÅGIR SAILING TEAM</h2>
+      <p class="login-subtitle">Log in to access the boat dashboard.</p>
+      <form id="connect-form" autocomplete="off">
+        <input id="broker" type="hidden" value="wss://f0ef601b262c4c0e8c7bbf9337301722.s1.eu.hivemq.cloud:8884/mqtt">
+        <label for="username">MQTT username</label>
+        <input id="username" type="text" placeholder="Operator username" required autocomplete="off" spellcheck="false" value="agir-guest">
+        <label for="password">MQTT password</label>
+        <input id="password" type="password" placeholder="Operator password" required autocomplete="off" value="agirguest">
+        <div class="connection-buttons">
+          <button id="connect" class="button primary" type="submit" style="width:100%">Connect to boat</button>
         </div>
-        <article class="panel attitude-panel">
-          <div class="section-heading"><h2>Boat attitude</h2><span class="tag">AEROSPACE · DEGREES</span></div>
-          <div class="attitude-values">
-            <div><p class="label">Roll</p><div class="angle"><span id="roll">—</span><span>°</span></div><p>Right side down +</p></div>
-            <div><p class="label">Pitch</p><div class="angle"><span id="pitch">—</span><span>°</span></div><p>Bow up +</p></div>
-            <div><p class="label">Yaw</p><div class="angle"><span id="yaw">—</span><span>°</span></div><p>Relative to startup</p></div>
-          </div>
-        </article>
-        <div class="lower-grid">
-          <article class="panel position-panel"><div class="section-heading"><h2>Position</h2><span class="tag">GPS</span></div><dl><div><dt>Latitude</dt><dd id="latitude">—</dd></div><div><dt>Longitude</dt><dd id="longitude">—</dd></div><div><dt>Ground speed</dt><dd id="position-sog">—</dd></div></dl><p class="muted">Coordinates in decimal degrees.</p></article>
-          <article class="panel battery-panel"><p class="eyebrow">BATTERY ALARM</p><div id="battery-light" class="battery-light"></div><h2 id="battery">Unknown</h2><p>Low-battery signal only.<br>Charge percentage is not available.</p></article>
-        </div>
-        <p class="timestamp">Telemetry timestamp <span id="timestamp">—</span></p>
-      </section>
-      <aside class="sidebar">
-        <section class="panel recording-panel"><div class="section-heading"><h2>Recording</h2><span id="recording-status" class="pill">Unknown</span></div><p class="muted">Rosbags are saved on the Raspberry Pi.</p><div class="bag-label">CURRENT BAG</div><p id="bag-name" class="bag-name">—</p><div class="recording-buttons"><button id="start" class="button primary" disabled>● Start recording</button><button id="stop" class="button secondary" disabled>■ Stop</button></div><p id="recording-error" class="error" hidden></p><p id="command-status" class="feedback" role="status">Connect and wait for the boat's recording state.</p></section>
-        <section class="panel connection-panel"><div class="section-heading"><h2>Connection</h2><span class="tag">SECURE MQTT</span></div><form id="connect-form" autocomplete="off"><label for="broker">Broker WebSocket address</label><input id="broker" type="url" placeholder="wss://your-broker:port/mqtt" required spellcheck="false" autocomplete="off"><label for="username">MQTT username</label><input id="username" type="text" placeholder="Operator username" required autocomplete="off" spellcheck="false"><label for="password">MQTT password</label><input id="password" type="password" placeholder="Operator password" required autocomplete="off"><div class="connection-buttons"><button id="connect" class="button primary" type="submit">Connect to boat</button><button id="disconnect" class="button secondary" type="button" disabled>Disconnect</button></div></form><p class="credential-note">Use operator credentials issued by your broker. This page does not save your password.</p><p id="connection-error" class="error" role="alert" hidden></p></section>
-      </aside>
+      </form>
+      <p class="credential-note" style="margin-bottom:0">Use operator credentials issued by your broker. This page does not save your password.</p>
+      <p id="connection-error" class="error" role="alert" hidden></p>
     </div>
-    <footer><span>ÅGIR SAILING TEAM</span><span>Live data needs a connected boat. Missing or stale values appear as —.</span></footer>
-  </main>
+  </div>
+
+  <div id="app-content" hidden>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Ågir dashboard home"><span class="brand-icon">Å</span><span>ÅGIR <small>SAILING TEAM</small></span></a>
+      <span class="topbar-note">BOAT DASHBOARD <span class="edition">/ 01</span></span>
+      <span id="connection-status" class="pill" role="status">Disconnected</span>
+    </header>
+    <main>
+      <div class="page-heading"><div><p class="eyebrow">FROM THE BOAT TO THE SHORE</p><h1>A view from the water.</h1><p class="subtitle">Live instruments and recording control.</p></div><button id="demo" class="button secondary">Explore demo</button></div>
+      <div id="demo-banner" class="demo-banner" hidden>DEMO MODE · Simulated values. Recording controls are disabled.</div>
+      <div class="layout">
+        <section class="instruments" aria-label="Boat instruments">
+          <div class="section-heading"><h2>Live overview</h2><span id="freshness" class="muted">Waiting for the boat</span></div>
+          <div class="metric-grid">
+            <article class="metric main-metric"><p class="eyebrow">SPEED OVER GROUND</p><div class="reading"><span id="sog">—</span><span class="unit">m/s</span></div><p>GPS ground speed</p><div class="metric-line"></div></article>
+            <article class="metric"><p class="eyebrow">ESTIMATED HEIGHT</p><div class="reading"><span id="height">—</span><span class="unit">m</span></div><p>Waterline reference below the centre of mass</p></article>
+          </div>
+          <article class="panel attitude-panel">
+            <div class="section-heading"><h2>Boat attitude</h2><span class="tag">AEROSPACE · DEGREES</span></div>
+            <div class="attitude-values">
+              <div><p class="label">Roll</p><div class="angle"><span id="roll">—</span><span>°</span></div><p>Right side down +</p></div>
+              <div><p class="label">Pitch</p><div class="angle"><span id="pitch">—</span><span>°</span></div><p>Bow up +</p></div>
+              <div><p class="label">Yaw</p><div class="angle"><span id="yaw">—</span><span>°</span></div><p>Relative to startup</p></div>
+            </div>
+          </article>
+          <div class="lower-grid">
+            <article class="panel position-panel"><div class="section-heading"><h2>Position</h2><span class="tag">GPS</span></div><dl><div><dt>Latitude</dt><dd id="latitude">—</dd></div><div><dt>Longitude</dt><dd id="longitude">—</dd></div><div><dt>Ground speed</dt><dd id="position-sog">—</dd></div></dl><p class="muted">Coordinates in decimal degrees.</p></article>
+            <article class="panel battery-panel"><p class="eyebrow">BATTERY ALARM</p><div id="battery-light" class="battery-light"></div><h2 id="battery">Unknown</h2><p>Low-battery signal only.<br>Charge percentage is not available.</p></article>
+          </div>
+          <p class="timestamp">Telemetry timestamp <span id="timestamp">—</span></p>
+        </section>
+        <aside class="sidebar">
+          <section class="panel recording-panel"><div class="section-heading"><h2>Recording</h2><span id="recording-status" class="pill">Unknown</span></div><p class="muted">Rosbags are saved on the Raspberry Pi.</p><div class="bag-label">CURRENT BAG</div><p id="bag-name" class="bag-name">—</p><div class="recording-buttons"><button id="start" class="button primary" disabled>● Start recording</button><button id="stop" class="button secondary" disabled>■ Stop</button></div><p id="recording-error" class="error" hidden></p><p id="command-status" class="feedback" role="status">Connect and wait for the boat's recording state.</p></section>
+          <section class="panel connection-panel">
+            <div class="section-heading"><h2>Connection</h2><span class="tag">SECURE MQTT</span></div>
+            <p class="credential-note" style="margin-top:0">Connected as <strong id="current-user">user</strong></p>
+            <div class="connection-buttons">
+              <button id="disconnect" class="button secondary" type="button" style="width:100%" disabled>Disconnect</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+      <footer><span>ÅGIR SAILING TEAM</span><span>Live data needs a connected boat. Missing or stale values appear as —.</span></footer>
+    </main>
+  </div>
   <noscript>This dashboard needs JavaScript to receive boat data.</noscript>
 </body>
 </html>
