@@ -22,6 +22,8 @@ export class BoatMap {
     this.previous = null;
     this.bearing = null;
     this.visible = false;
+    this.trackSegments = [];
+    this.activeTrack = null;
     followButton.addEventListener("click", () => {
       this.setFollow(!this.follow);
       if (this.follow && this.marker) this.map.panTo(this.marker.getLatLng());
@@ -54,15 +56,43 @@ export class BoatMap {
         this.error.hidden = false;
       }).addTo(this.map);
       this.map.on("dragstart", () => this.setFollow(false));
+      for (const segment of this.trackSegments) this.drawTrackSegment(segment);
     }
     this.map.invalidateSize({ pan: false });
   }
 
-  reset() {
+  drawTrackSegment(segment) {
+    segment.layer = globalThis.L.polyline(segment.points, {
+      color: "#126c69", weight: 3, opacity: 0.8, interactive: false,
+    }).addTo(this.map);
+  }
+
+  recordPosition(position) {
+    if (!this.activeTrack) {
+      this.activeTrack = { points: [position], layer: null };
+      this.trackSegments.push(this.activeTrack);
+      if (this.map) this.drawTrackSegment(this.activeTrack);
+      return;
+    }
+    const last = this.activeTrack.points.at(-1);
+    // Re-rendering the same GPS sample must not grow the track.
+    if (last[0] === position[0] && last[1] === position[1]) return;
+    this.activeTrack.points.push(position);
+    this.activeTrack.layer?.addLatLng(position);
+  }
+
+  reset({ clearTrack = false } = {}) {
     if (this.marker) this.marker.remove();
     this.marker = null;
     this.previous = null;
     this.bearing = null;
+    // Preserve previous segments across GPS gaps without inventing a route
+    // between the last known position and the first recovered fix.
+    this.activeTrack = null;
+    if (clearTrack) {
+      for (const segment of this.trackSegments) segment.layer?.remove();
+      this.trackSegments = [];
+    }
   }
 
   update(values) {
@@ -72,8 +102,9 @@ export class BoatMap {
       this.status.textContent = "Waiting for a valid GPS fix";
       return;
     }
-    if (!this.map) return;
     const position = [latitude, longitude];
+    this.recordPosition(position);
+    if (!this.map) return;
     const course = this.previous ? movementBearing(this.previous, position) : null;
     if (course !== null) this.bearing = course;
     if (!this.previous || course !== null) this.previous = position;

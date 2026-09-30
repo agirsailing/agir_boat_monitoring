@@ -48,6 +48,17 @@ not from startup-relative IMU yaw. Before movement, direction is marked unavaila
 An invalid or stale fix removes the arrow. Demo mode simulates a moving GPS position
 and both ultrasonic sensors, and is also accessible from the login screen.
 
+The map draws a GPS track for the current browser session, including samples
+received while viewing the dashboard or before first opening the map. Repeated
+coordinates are ignored. GPS gaps and connection interruptions start a new
+segment while preserving the previous track. Starting a new login or entering
+or exiting demo mode clears the track; reloading the page also clears it.
+The track is held only in memory, not saved on the boat or in browser storage.
+
+The toolbar reserves **Reset track**, **Draw**, **Ping** (currently disabled),
+and a buoy-type selector with **PIN**, **COMITATO**, **BOLINA**. Selecting a
+type does not place a buoy or send commands; these controls are placeholders.
+
 ## Architecture
 
 GitHub Pages serves the files to the operator's browser. The browser then

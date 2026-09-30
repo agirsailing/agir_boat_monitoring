@@ -76,7 +76,7 @@ async function startApp() {
     demoTimer = null;
     demo = false;
     state.reset();
-    boatMap.reset();
+    boatMap.reset({ clearTrack: true });
   }
 
   el("connect-form").addEventListener("submit", event => {
@@ -125,6 +125,7 @@ async function startApp() {
       connection.disconnect();
       connectionError("");
       demo = true;
+      boatMap.reset({ clearTrack: true });
       const tick = () => {
         const wave = Math.sin(performance.now() / 3000);
         const course = performance.now() / 60000;

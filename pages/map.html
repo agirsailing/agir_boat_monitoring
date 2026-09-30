@@ -1,9 +1,20 @@
       <section id="map-page" aria-label="Boat map" hidden>
         <div class="map-toolbar">
           <p id="map-status" class="muted" role="status">Waiting for a GPS fix · Stockholm</p>
-          <button id="follow-boat" class="button secondary" type="button" aria-pressed="true">Follow boat: on</button>
+          <div class="map-controls" role="group" aria-label="Map controls">
+            <button id="reset-track" class="button secondary" type="button" disabled title="Coming soon">Reset track</button>
+            <button id="draw-track" class="button secondary" type="button" disabled title="Coming soon">Draw</button>
+            <button id="ping-buoy" class="button secondary" type="button" disabled title="Coming soon">Ping</button>
+            <label class="buoy-type-label" for="buoy-type">Buoy type</label>
+            <select id="buoy-type" class="button secondary" aria-label="Buoy type">
+              <option value="PIN">PIN</option>
+              <option value="COMITATO">COMITATO</option>
+              <option value="BOLINA">BOLINA</option>
+            </select>
+            <button id="follow-boat" class="button secondary" type="button" aria-pressed="true">Follow boat: on</button>
+          </div>
         </div>
         <p id="map-error" class="error" role="alert" hidden></p>
         <div id="boat-map" aria-label="Live boat position map"></div>
-        <p class="muted map-note">The arrow follows absolute GPS coordinates. Its direction is estimated from GPS movement; it is not a compass heading.</p>
+        <p class="muted map-note">The line shows the boat's GPS track for this session, with gaps when GPS is unavailable. Arrow direction is estimated from GPS movement; it is not a compass heading. Reset track, Draw, Ping and buoy placement are coming soon.</p>
       </section>
