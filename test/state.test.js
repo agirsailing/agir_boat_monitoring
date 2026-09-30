@@ -8,6 +8,26 @@ const telemetry = {
   height_valid: true, height_m: -.1, battery_valid: true, battery_low: false,
   sog_valid: true, sog_mps: 6,
 };
+test("ultrasonic sides are independent, optional for older gateways and expire", () => {
+  let now = 0;
+  const s = new DashboardState(() => now);
+  s.ingest(TOPICS.telemetry, telemetry);
+  assert.equal(s.values().ultrasonicLeft, null);
+  s.ingest(TOPICS.telemetry, { ...telemetry,
+    ultrasonic_left_valid: true, ultrasonic_left_m: .62,
+    ultrasonic_right_valid: false, ultrasonic_right_m: .75 });
+  assert.equal(s.values().ultrasonicLeft, .62);
+  assert.equal(s.values().ultrasonicRight, null);
+  for (const invalid of [null, NaN, Infinity, -.1, "0.6"]) {
+    s.ingest(TOPICS.telemetry, { ...telemetry,
+      ultrasonic_left_valid: true, ultrasonic_left_m: invalid,
+      ultrasonic_right_valid: true, ultrasonic_right_m: .75 });
+    assert.equal(s.values().ultrasonicLeft, null);
+    assert.equal(s.values().ultrasonicRight, .75);
+  }
+  now = SETTINGS.dataTimeoutMs;
+  assert.equal(s.values().ultrasonicRight, null);
+});
 test("invalid values remain unknown and stale samples expire independently", () => {
   let now = 0;
   const s = new DashboardState(() => now);
@@ -78,4 +98,3 @@ test("broker address must use WSS without embedded credentials", () => {
     assert.throws(() => brokerUrl(value));
   }
 });
-
