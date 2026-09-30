@@ -1,0 +1,34 @@
+      <div id="dashboard-page" class="layout">
+        <section class="instruments" aria-label="Boat instruments">
+          <div class="section-heading"><h2>Live overview</h2><span id="freshness" class="muted">Waiting for the boat</span></div>
+          <div class="metric-grid">
+            <article class="metric main-metric"><p class="eyebrow">SPEED OVER GROUND</p><div class="reading"><span id="sog">—</span><span class="unit">m/s</span></div><p>GPS ground speed</p><div class="metric-line"></div></article>
+            <article class="metric"><p class="eyebrow">ESTIMATED HEIGHT</p><div class="reading"><span id="height">—</span><span class="unit">m</span></div><p>Waterline reference below the centre of mass</p></article>
+            <article class="metric"><p class="eyebrow">LEFT ULTRASONIC</p><div class="reading"><span id="ultrasonic-left">—</span><span class="unit">m</span></div><p>Port sensor · measured distance</p></article>
+            <article class="metric"><p class="eyebrow">RIGHT ULTRASONIC</p><div class="reading"><span id="ultrasonic-right">—</span><span class="unit">m</span></div><p>Starboard sensor · measured distance</p></article>
+          </div>
+          <article class="panel attitude-panel">
+            <div class="section-heading"><h2>Boat attitude</h2><span class="tag">AEROSPACE · DEGREES</span></div>
+            <div class="attitude-values">
+              <div><p class="label">Roll</p><div class="angle"><span id="roll">—</span><span>°</span></div><p>Right side down +</p></div>
+              <div><p class="label">Pitch</p><div class="angle"><span id="pitch">—</span><span>°</span></div><p>Bow up +</p></div>
+              <div><p class="label">Yaw</p><div class="angle"><span id="yaw">—</span><span>°</span></div><p>Relative to startup</p></div>
+            </div>
+          </article>
+          <div class="lower-grid">
+            <article class="panel position-panel"><div class="section-heading"><h2>Position</h2><span class="tag">GPS</span></div><dl><div><dt>Latitude</dt><dd id="latitude">—</dd></div><div><dt>Longitude</dt><dd id="longitude">—</dd></div><div><dt>Ground speed</dt><dd id="position-sog">—</dd></div></dl><p class="muted">Coordinates in decimal degrees.</p></article>
+            <article class="panel battery-panel"><p class="eyebrow">BATTERY ALARM</p><div id="battery-light" class="battery-light"></div><h2 id="battery">Unknown</h2><p>Low-battery signal only.<br>Charge percentage is not available.</p></article>
+          </div>
+          <p class="timestamp">Telemetry timestamp <span id="timestamp">—</span></p>
+        </section>
+        <aside class="sidebar">
+          <section class="panel recording-panel"><div class="section-heading"><h2>Recording</h2><span id="recording-status" class="pill">Unknown</span></div><p class="muted">Rosbags are saved on the Raspberry Pi.</p><div class="bag-label">CURRENT BAG</div><p id="bag-name" class="bag-name">—</p><div class="recording-buttons"><button id="start" class="button primary" disabled>● Start recording</button><button id="stop" class="button secondary" disabled>■ Stop</button></div><p id="recording-error" class="error" hidden></p><p id="command-status" class="feedback" role="status">Connect and wait for the boat's recording state.</p></section>
+          <section class="panel connection-panel">
+            <div class="section-heading"><h2>Connection</h2><span class="tag">SECURE MQTT</span></div>
+            <p class="credential-note" style="margin-top:0">Connected as <strong id="current-user">user</strong></p>
+            <div class="connection-buttons">
+              <button id="disconnect" class="button secondary" type="button" style="width:100%" disabled>Disconnect</button>
+            </div>
+          </section>
+        </aside>
+      </div>

@@ -83,6 +83,10 @@ export class DashboardState {
     const t = this.fresh("telemetry");
     const p = this.fresh("position");
     const value = (flag, field) => t?.[flag] === true && finite(t[field]) ? t[field] : null;
+    const range = side => {
+      const distance = value(`ultrasonic_${side}_valid`, `ultrasonic_${side}_m`);
+      return distance !== null && distance >= 0 ? distance : null;
+    };
     const fix = p?.fix_valid === true && finite(p.latitude_deg) && finite(p.longitude_deg) &&
       Math.abs(p.latitude_deg) <= 90 && Math.abs(p.longitude_deg) <= 180;
     return {
@@ -90,6 +94,8 @@ export class DashboardState {
       pitch: value("attitude_valid", "pitch_deg"),
       yaw: value("attitude_valid", "yaw_deg"),
       height: value("height_valid", "height_m"),
+      ultrasonicLeft: range("left"),
+      ultrasonicRight: range("right"),
       sog: value("sog_valid", "sog_mps"),
       battery: t?.battery_valid === true && typeof t.battery_low === "boolean" ? t.battery_low : null,
       latitude: fix ? p.latitude_deg : null,
@@ -99,4 +105,3 @@ export class DashboardState {
     };
   }
 }
-
