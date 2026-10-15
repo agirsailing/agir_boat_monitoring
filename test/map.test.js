@@ -87,6 +87,20 @@ test("map starts at Stockholm, sets absolute fixes, preserves view and removes s
     view.update({ latitude: 59.35, longitude: 18.6 });
     assert.equal(view.trackSegments.length, 2);
     assert.deepEqual(view.trackSegments[1].points, [[59.35, 18.6]]);
+    const oldLayers = view.trackSegments.map(segment => segment.layer);
+    const currentMarker = view.marker;
+    const currentBearing = view.bearing;
+    view.setFollow(false);
+    view.resetTrack({ latitude: 59.35, longitude: 18.6 });
+    assert.ok(oldLayers.every(layer => layer.removed));
+    assert.equal(view.marker, currentMarker);
+    assert.equal(view.bearing, currentBearing);
+    assert.equal(view.follow, false);
+    assert.equal(view.trackSegments.length, 1);
+    assert.deepEqual(view.trackSegments[0].layer.points, [[59.35, 18.6]]);
+    view.update({ latitude: 59.35, longitude: 18.6 });
+    view.update({ latitude: 59.36, longitude: 18.7 });
+    assert.deepEqual(view.trackSegments[0].layer.points, [[59.35, 18.6], [59.36, 18.7]]);
     const layers = view.trackSegments.map(segment => segment.layer);
     view.reset({ clearTrack: true });
     assert.equal(view.trackSegments.length, 0);
@@ -94,4 +108,25 @@ test("map starts at Stockholm, sets absolute fixes, preserves view and removes s
   } finally {
     globalThis.L = previousL;
   }
+});
+
+test("reset track without a valid current fix waits for GPS, including before map initialization", () => {
+  const button = { addEventListener() {}, setAttribute() {} };
+  const view = new BoatMap({}, {}, {}, button);
+  view.update({ latitude: 59, longitude: 18 });
+  for (const fix of [
+    { latitude: null, longitude: null },
+    { latitude: NaN, longitude: 18 },
+    { latitude: 91, longitude: 18 },
+    { latitude: 59, longitude: 181 },
+  ]) {
+    view.resetTrack(fix);
+    assert.equal(view.trackSegments.length, 0);
+    assert.equal(view.activeTrack, null);
+  }
+  view.update({ latitude: 59.4, longitude: 18.5 });
+  assert.deepEqual(view.trackSegments[0].points, [[59.4, 18.5]]);
+  view.resetTrack({ latitude: 0, longitude: 0 });
+  view.update({ latitude: 0, longitude: 0.01 });
+  assert.deepEqual(view.trackSegments[0].points, [[0, 0], [0, 0.01]]);
 });

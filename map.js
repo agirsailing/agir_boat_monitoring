@@ -81,6 +81,17 @@ export class BoatMap {
     this.activeTrack.layer?.addLatLng(position);
   }
 
+  resetTrack({ latitude, longitude } = {}) {
+    for (const segment of this.trackSegments) segment.layer?.remove();
+    this.trackSegments = [];
+    this.activeTrack = null;
+    // Start at the fresh fix supplied by the state, never a cached/stale marker.
+    if (finite(latitude) && finite(longitude) &&
+        Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+      this.recordPosition([latitude, longitude]);
+    }
+  }
+
   reset({ clearTrack = false } = {}) {
     if (this.marker) this.marker.remove();
     this.marker = null;
@@ -89,10 +100,7 @@ export class BoatMap {
     // Preserve previous segments across GPS gaps without inventing a route
     // between the last known position and the first recovered fix.
     this.activeTrack = null;
-    if (clearTrack) {
-      for (const segment of this.trackSegments) segment.layer?.remove();
-      this.trackSegments = [];
-    }
+    if (clearTrack) this.resetTrack();
   }
 
   update(values) {

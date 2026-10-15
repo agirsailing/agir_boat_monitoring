@@ -10,6 +10,10 @@ async function startApp() {
   const el = id => document.getElementById(id);
   const state = new DashboardState();
   const boatMap = new BoatMap(el("boat-map"), el("map-status"), el("map-error"), el("follow-boat"));
+  el("reset-track").addEventListener("click", () => {
+    boatMap.resetTrack(state.values());
+    render();
+  });
   let demo = false;
   let demoTimer = null;
   let linkStatus = "disconnected";

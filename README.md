@@ -5,6 +5,10 @@ No application backend, build step, or installation is needed for hosting.
 It uses MQTT.js 5.15.2 and Leaflet 1.9.4 from jsDelivr; fonts load from Google Fonts with a system
 fallback. These are external network dependencies, not broker credentials.
 
+Brand assets are stored in `assets/images/`. `Agir-4x4.png` is the vertical logo
+used in the navbar, login screen and favicon. `Agir-4x1_Text.png` is the horizontal
+logo, stored for future use. Both original images are preserved unchanged.
+
 ## First look
 
 Publish this folder on GitHub Pages, including the `pages/` directory, and open
@@ -55,7 +59,11 @@ segment while preserving the previous track. Starting a new login or entering
 or exiting demo mode clears the track; reloading the page also clears it.
 The track is held only in memory, not saved on the boat or in browser storage.
 
-The toolbar reserves **Reset track**, **Draw**, **Ping** (currently disabled),
+**Reset track** clears all previous track segments and restarts at the current
+fresh GPS position, preserving the boat marker, direction and follow setting.
+Without a valid fix it clears the track and waits for the next valid position.
+
+The toolbar reserves **Draw**, **Ping** (currently disabled),
 and a buoy-type selector with **PIN**, **COMITATO**, **BOLINA**. Selecting a
 type does not place a buoy or send commands; these controls are placeholders.
 

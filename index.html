@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Ågir · Boat dashboard</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./assets/images/Agir-4x4.png" type="image/png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./login.css">
@@ -17,6 +17,7 @@
 <body>
   <div id="login-overlay" class="login-overlay">
     <div class="login-box panel">
+      <img class="login-logo" src="./assets/images/Agir-4x4.png" alt="Ågir Sailing Team logo" width="80" height="80">
       <h2>ÅGIR SAILING TEAM</h2>
       <p class="login-subtitle">Log in to access the boat dashboard.</p>
       <form id="connect-form" autocomplete="off">
@@ -37,7 +38,7 @@
 
   <div id="app-content" hidden>
     <header class="topbar">
-      <a class="brand" href="#dashboard" aria-label="Ågir dashboard home"><span class="brand-icon">Å</span><span>ÅGIR <small>SAILING TEAM</small></span></a>
+      <a class="brand" href="#dashboard" aria-label="Ågir dashboard home"><img class="brand-logo" src="./assets/images/Agir-4x4.png" alt="" width="56" height="56"><span>ÅGIR <small>SAILING TEAM</small></span></a>
       <nav class="page-nav" aria-label="Main navigation">
         <a href="#dashboard" data-page="dashboard" aria-current="page">Dashboard</a>
         <a href="#map" data-page="map">Map</a>
