@@ -6,8 +6,9 @@ It uses MQTT.js 5.15.2 and Leaflet 1.9.4 from jsDelivr; fonts load from Google F
 fallback. These are external network dependencies, not broker credentials.
 
 Brand assets are stored in `assets/images/`. `Agir-4x4.png` is the vertical logo
-used in the login screen and favicon. `Agir-4x1_Text.png` is the horizontal
-logo used directly in the navbar. Both original images are preserved unchanged.
+used as the favicon. `Agir-4x1_Text.png` is the horizontal logo used in the navbar
+and login screen. CSS hides its transparent side margins to keep the visible logo
+legible. Both original images are preserved unchanged.
 
 ## First look
 

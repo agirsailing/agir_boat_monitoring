@@ -45,7 +45,7 @@ h2 {
   font-weight:700;
 }
 .topbar {
-  height:90px;
+  height:112px;
   padding:0 5%;
   border-bottom:1px solid var(--border);
   display:flex;
@@ -53,16 +53,22 @@ h2 {
   justify-content:space-between;
   background:#fff;
 }
-.brand {
-  display:flex;
-  align-items:center;
-}
-.brand-logo {
+.logo-frame {
   display:block;
-  width:256px;
-  height:64px;
-  object-fit:contain;
+  aspect-ratio:2.2;
+  overflow:hidden;
   flex-shrink:0;
+}
+.logo-frame img {
+  /* Hide the source image's transparent side margins without altering the logo. */
+  display:block;
+  width:181.818182%;
+  max-width:none;
+  height:auto;
+  margin-left:-40.909091%;
+}
+.brand {
+  width:220px;
 }
 .topbar-note {
   font-size:11px;
@@ -423,7 +429,6 @@ footer>span:first-child {
 .boat-arrow path { fill:#126c69; stroke:white; stroke-width:2.5; stroke-linejoin:round; }
 #login-demo { width:100%; margin-top:18px; }
 @media(max-width:650px) {
-  .brand-logo { width:200px; height:50px; }
   .topbar { height:auto!important; min-height:90px; flex-wrap:wrap; padding-top:14px; padding-bottom:14px; gap:14px; }
   .page-nav { order:3; width:100%; }
   .page-nav a { flex:1; text-align:center; }
@@ -483,7 +488,10 @@ footer>span:first-child {
     display:none;
   }
   .topbar {
-    height:76px;
+    height:96px;
+  }
+  .brand {
+    width:176px;
   }
   .page-heading {
     margin-bottom:28px;

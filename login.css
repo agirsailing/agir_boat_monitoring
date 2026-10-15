@@ -14,16 +14,10 @@
   max-width: 400px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
-.login-box h2 {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-.login-logo {
-  display:block;
-  width:80px;
-  height:80px;
-  object-fit:contain;
-  margin-bottom:16px;
+.login-brand {
+  width:280px;
+  max-width:100%;
+  margin:0 auto 20px;
 }
 .login-box p.login-subtitle {
   color: var(--muted);

@@ -17,8 +17,7 @@
 <body>
   <div id="login-overlay" class="login-overlay">
     <div class="login-box panel">
-      <img class="login-logo" src="./assets/images/Agir-4x4.png" alt="Ågir Sailing Team logo" width="80" height="80">
-      <h2>ÅGIR SAILING TEAM</h2>
+      <div class="logo-frame login-brand"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="8000" height="2000"></div>
       <p class="login-subtitle">Log in to access the boat dashboard.</p>
       <form id="connect-form" autocomplete="off">
         <input id="broker" type="hidden" value="wss://d2f5112a.ala.eu-central-1.emqxsl.com:8084/mqtt">
@@ -38,7 +37,7 @@
 
   <div id="app-content" hidden>
     <header class="topbar">
-      <a class="brand" href="#dashboard" aria-label="Agir dashboard home"><img class="brand-logo" src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="256" height="64"></a>
+      <a class="brand logo-frame" href="#dashboard" aria-label="Agir dashboard home"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="8000" height="2000"></a>
       <nav class="page-nav" aria-label="Main navigation">
         <a href="#dashboard" data-page="dashboard" aria-current="page">Dashboard</a>
         <a href="#map" data-page="map">Map</a>
