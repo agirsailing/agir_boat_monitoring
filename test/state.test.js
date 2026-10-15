@@ -8,6 +8,27 @@ const telemetry = {
   height_valid: true, height_m: -.1, battery_valid: true, battery_low: false,
   sog_valid: true, sog_mps: 6,
 };
+test("battery voltage is optional, expires and is independent of the low alarm", () => {
+  let now = 0;
+  const s = new DashboardState(() => now);
+  s.ingest(TOPICS.telemetry, telemetry);
+  assert.equal(s.values().batteryVoltage, null);
+  s.ingest(TOPICS.telemetry, { ...telemetry, battery_voltage_v: 12.4 });
+  assert.equal(s.values().batteryVoltage, 12.4);
+  assert.equal(s.values().battery, false);
+  for (const invalid of [null, NaN, Infinity, "12.4"]) {
+    s.ingest(TOPICS.telemetry, { ...telemetry, battery_voltage_v: invalid, battery_low: true });
+    assert.equal(s.values().batteryVoltage, null);
+    assert.equal(s.values().battery, true);
+  }
+  s.ingest(TOPICS.telemetry, { ...telemetry, battery_voltage_v: 12.4, battery_valid: false });
+  assert.equal(s.values().batteryVoltage, null);
+  assert.equal(s.values().battery, null);
+  s.ingest(TOPICS.telemetry, { ...telemetry, battery_voltage_v: 12.4 });
+  now = SETTINGS.dataTimeoutMs;
+  assert.equal(s.values().batteryVoltage, null);
+  assert.equal(s.values().battery, null);
+});
 test("ultrasonic sides are independent, optional for older gateways and expire", () => {
   let now = 0;
   const s = new DashboardState(() => now);

@@ -1,7 +1,7 @@
 // Public configuration only. Never put passwords or tokens in this file.
 export const TOPICS = Object.freeze({
-  telemetry: "agir_gui/data/telemetry",
-  position: "agir_gui/data/position",
+  telemetry: "agir_gui/data/dashboard",
+  position: "agir_gui/data/map",
   recording: "agir_gui/data/recording_state",
   start: "agir_gui/cmd/start_recording",
   stop: "agir_gui/cmd/stop_recording",

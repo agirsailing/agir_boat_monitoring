@@ -136,7 +136,8 @@ async function startApp() {
           height_valid: true, height_m: .48 + wave * .02,
           ultrasonic_left_valid: true, ultrasonic_left_m: .62 + wave * .04,
           ultrasonic_right_valid: true, ultrasonic_right_m: .58 - wave * .03,
-          battery_valid: true, battery_low: false, sog_valid: true, sog_mps: 6.2 + wave * .3,
+          battery_valid: true, battery_low: false, battery_voltage_v: 12.4,
+          sog_valid: true, sog_mps: 6.2 + wave * .3,
         });
         state.ingest(TOPICS.position, {
           header: { stamp }, gps_stamp: stamp, fix_valid: true,

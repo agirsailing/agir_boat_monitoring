@@ -98,6 +98,7 @@ export class DashboardState {
       ultrasonicRight: range("right"),
       sog: value("sog_valid", "sog_mps"),
       battery: t?.battery_valid === true && typeof t.battery_low === "boolean" ? t.battery_low : null,
+      batteryVoltage: value("battery_valid", "battery_voltage_v"),
       latitude: fix ? p.latitude_deg : null,
       longitude: fix ? p.longitude_deg : null,
       positionSog: fix && finite(p.sog_mps) ? p.sog_mps : null,

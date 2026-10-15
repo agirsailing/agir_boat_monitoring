@@ -14,6 +14,7 @@ export function renderDashboard(state, demo) {
   setText("longitude", finite(values.longitude) ? values.longitude.toFixed(6) + "°" : "—");
   setText("position-sog", finite(values.positionSog) ? values.positionSog.toFixed(2) + " m/s" : "—");
   setText("battery", values.battery === null ? "Unknown" : values.battery ? "Low battery" : "No low alarm");
+  setText("battery-voltage", finite(values.batteryVoltage) ? format(values.batteryVoltage) + " V" : "—");
   el("battery-light").dataset.tone = values.battery === null ? "" : values.battery ? "alert" : "good";
   const stamp = values.timestamp;
   const time = stamp && finite(stamp.sec) && finite(stamp.nanosec)

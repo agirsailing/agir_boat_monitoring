@@ -111,15 +111,19 @@ No ROS endpoint generator is run by this website.
 
 | MQTT topic | Data |
 | --- | --- |
-| `agir_gui/data/telemetry` | ROS WebTelemetry converted to JSON: timestamp; roll/pitch/yaw in aerospace degrees; height and left/right ultrasonic distances in metres; battery low alarm; SOG in m/s; validity flags |
-| `agir_gui/data/position` | ROS BoatPosition converted to JSON: latitude/longitude in decimal degrees; SOG in m/s; GPS timestamp and fix validity |
+| `agir_gui/data/dashboard` | ROS DashboardDataMsg converted to JSON: timestamp; roll/pitch/yaw in aerospace degrees; height and left/right ultrasonic distances in metres; battery voltage and raw low alarm; SOG in m/s; validity flags |
+| `agir_gui/data/map` | ROS MapDataMsg converted to JSON: latitude/longitude in decimal degrees; SOG in m/s; GPS timestamp and fix validity |
 | `agir_gui/data/recording_state` | recording (boolean), bag_name, last_error |
 | `agir_gui/cmd/start_recording` and `stop_recording` | JSON object with a unique requestId |
 | `agir_gui/rsp/start_recording` and `stop_recording` | requestId, success, error_message, bag_name |
 
 Yaw is relative to IMU startup, **not north**. Height refers to the design
-waterline below the centre of mass and can be negative. Battery status is only
-a low alarm, not charge percentage or a complete battery-health assessment.
+waterline below the centre of mass and can be negative. The battery card shows
+`battery_voltage_v` in volts and the raw GPIO `battery_low` alarm. These arrive
+through the gateway's direct BatteryData subscription. The battery sensor node
+also handles the shutdown policy. Charge percentage and overall battery health are not inferred.
+`battery_valid=false` makes both displays unknown. A null/missing voltage shows
+a dash even when the alarm remains known, including with older gateways.
 
 Invalid sensor flags and non-finite/missing numbers appear as a dash. Data
 expires by browser reception time after 3 seconds; recording state after
