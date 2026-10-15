@@ -12,12 +12,24 @@
   background: white;
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 .login-brand {
   width:280px;
+  height:128px;
   max-width:100%;
   margin:0 auto 20px;
+}
+.login-brand img {
+  width:512px;
+  height:128px;
+}
+@media(max-width:380px) {
+  .login-brand { width:220px; height:100px; }
+  .login-brand img { width:400px; height:100px; }
 }
 .login-box p.login-subtitle {
   color: var(--muted);

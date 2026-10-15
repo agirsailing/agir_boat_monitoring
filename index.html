@@ -8,8 +8,8 @@
   <title>Ågir · Boat dashboard</title>
   <link rel="icon" href="./assets/images/Agir-4x4.png" type="image/png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./login.css">
+  <link rel="stylesheet" href="./styles.css?v=20261015-logo-fix">
+  <link rel="stylesheet" href="./login.css?v=20261015-logo-fix">
   <script defer src="https://cdn.jsdelivr.net/npm/mqtt@5.15.2/dist/mqtt.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./app.js"></script>
@@ -17,7 +17,7 @@
 <body>
   <div id="login-overlay" class="login-overlay">
     <div class="login-box panel">
-      <div class="logo-frame login-brand"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="8000" height="2000"></div>
+      <div class="logo-frame login-brand"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="512" height="128"></div>
       <p class="login-subtitle">Log in to access the boat dashboard.</p>
       <form id="connect-form" autocomplete="off">
         <input id="broker" type="hidden" value="wss://d2f5112a.ala.eu-central-1.emqxsl.com:8084/mqtt">
@@ -37,7 +37,7 @@
 
   <div id="app-content" hidden>
     <header class="topbar">
-      <a class="brand logo-frame" href="#dashboard" aria-label="Agir dashboard home"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="8000" height="2000"></a>
+      <a class="brand logo-frame" href="#dashboard" aria-label="Agir dashboard home"><img src="./assets/images/Agir-4x1_Text.png" alt="Agir Sailing Team" width="400" height="100"></a>
       <nav class="page-nav" aria-label="Main navigation">
         <a href="#dashboard" data-page="dashboard" aria-current="page">Dashboard</a>
         <a href="#map" data-page="map">Map</a>
