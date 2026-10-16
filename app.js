@@ -4,12 +4,33 @@ import { BrokerConnection } from "./mqtt-connection.js";
 import { BoatMap } from "./map.js";
 import { mountPages, showPage } from "./pages.js";
 import { renderDashboard } from "./dashboard.js";
+import { createRenderScheduler, LiveDiagnostics } from "./live-runtime.js";
 
 async function startApp() {
   await mountPages(document.getElementById("page-content"));
   const el = id => document.getElementById(id);
   const state = new DashboardState();
+  const diagnostics = new LiveDiagnostics();
+  // On-demand diagnostic snapshot; no periodic logging or stored payloads.
+  window.agirDiagnostics = () => ({
+    ...diagnostics.snapshot(),
+    mqtt: connection.diagnostics(),
+    visibility: document.visibilityState,
+    trackPoints: boatMap.trackSegments.reduce((count, segment) => count + segment.points.length, 0),
+  });
   const boatMap = new BoatMap(el("boat-map"), el("map-status"), el("map-error"), el("follow-boat"));
+  let lastMapSample;
+  let lastMapVisible;
+  let lastHash;
+  let page;
+  const render = createRenderScheduler(() => {
+    const start = performance.now();
+    paint();
+    diagnostics.rendered(performance.now() - start);
+  }, () => {
+    diagnostics.renderErrors++;
+    console.error("Dashboard rendering failed; check agirDiagnostics().renderErrors.");
+  });
   el("reset-track").addEventListener("click", () => {
     boatMap.resetTrack(state.values());
     render();
@@ -35,7 +56,8 @@ async function startApp() {
       feedback("Connected. Waiting for the boat's recording state.");
     }
     render();
-  }, (topic, data) => {
+  }, (topic, data, payloadBytes) => {
+    if (topic === TOPICS.telemetry) diagnostics.receive(data, payloadBytes);
     const response = state.response(topic, data);
     if (response) {
       feedback(response.success
@@ -47,7 +69,7 @@ async function startApp() {
     render();
   });
 
-  function render() {
+  function paint() {
     const values = state.values();
     renderDashboard(state, demo);
     const names = { disconnected: "Disconnected", connecting: "Connecting…",
@@ -66,9 +88,18 @@ async function startApp() {
     const isLogged = active || demo;
     if (el("login-overlay")) el("login-overlay").hidden = isLogged;
     if (el("app-content")) el("app-content").hidden = !isLogged;
-    const page = showPage(location.hash);
+    if (location.hash !== lastHash) {
+      page = showPage(location.hash);
+      lastHash = location.hash;
+    }
     boatMap.show(isLogged && page === "map");
-    boatMap.update(values);
+    const mapSample = state.fresh("position");
+    // Telemetry and recording packets do not require another GPS/map update.
+    if (mapSample !== lastMapSample || boatMap.visible !== lastMapVisible) {
+      boatMap.update(values);
+      lastMapSample = mapSample;
+      lastMapVisible = boatMap.visible;
+    }
 
     if (isLogged && el("current-user")) {
       setText("current-user", demo ? "Demo user" : el("username").value);
@@ -161,6 +192,7 @@ async function startApp() {
   window.addEventListener("hashchange", render);
 
   setInterval(() => {
+    diagnostics.tick(250);
     if (state.expire()) feedback("No reply received. Outcome unknown; check the next boat state before retrying.");
     render();
   }, 250);
@@ -168,6 +200,7 @@ async function startApp() {
   window.addEventListener("pagehide", () => {
     endDemo();
     connection.disconnect();
+    render.cancel();
   });
   render();
 }

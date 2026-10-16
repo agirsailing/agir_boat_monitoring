@@ -11,6 +11,15 @@ export class BrokerConnection {
     this.credentials = null;
     this.retry = null;
     this.ready = false;
+    this.successfulConnections = 0;
+    this.lastFailure = null;
+    this.connectionId = null;
+  }
+
+  diagnostics() {
+    return { clientId: this.connectionId, ready: this.ready,
+      successfulConnections: this.successfulConnections,
+      lastFailure: this.lastFailure && { ...this.lastFailure } };
   }
 
   connect(url, username, password) {
@@ -27,10 +36,11 @@ export class BrokerConnection {
     const credentials = this.credentials;
     if (!credentials) return;
     this.onStatus("connecting");
+    this.connectionId = "agir_web_" + crypto.randomUUID();
     const client = this.library.connect(credentials.endpoint, {
       username: credentials.username,
       password: credentials.password,
-      clientId: "agir_web_" + crypto.randomUUID(),
+      clientId: this.connectionId,
       protocolVersion: 4,
       clean: true,
       reconnectPeriod: 0,
@@ -40,8 +50,16 @@ export class BrokerConnection {
     });
     this.client = client;
     const current = () => this.client === client;
-    const failed = () => {
+    const failed = (event, error) => {
       if (!current()) return;
+      // Retain only bounded diagnostic metadata, never broker URLs or credentials.
+      const code = error?.code;
+      this.lastFailure = {
+        at: new Date().toISOString(), clientId: client.options.clientId, event,
+        code: typeof code === "number" ? code :
+          typeof code === "string" && /^[A-Za-z0-9_]{1,48}$/.test(code) ? code : null,
+        keepaliveTimeout: /keepalive|ping timeout/i.test(error?.message || ""),
+      };
       this.client = null;
       this.ready = false;
       client.end(true);
@@ -56,25 +74,33 @@ export class BrokerConnection {
         if (!current()) return;
         if (error || !granted || granted.length !== topics.length ||
             granted.some(item => item.qos > 2)) {
-          failed();
+          failed("subscription_rejected", error);
           return;
         }
         this.ready = true;
+        this.successfulConnections++;
         this.onStatus("connected");
       });
     });
     client.on("message", (topic, payload, packet) => {
       if (!current() || packet.retain || payload.length > SETTINGS.maxPayloadBytes) return;
+      let data;
       try {
-        const data = JSON.parse(payload.toString());
-        this.onMessage(topic, data);
+        data = JSON.parse(payload.toString());
       } catch {
-        // Ignore malformed input. Do not include received content in logs or HTML.
+        // Only parsing failures are malformed input, not application errors.
+        return;
+      }
+      try {
+        this.onMessage(topic, data, payload.length);
+      } catch {
+        // Keep MQTT processing alive and surface the error without logging payloads.
+        console.error("MQTT application callback failed.");
       }
     });
-    client.on("error", failed);
-    client.on("close", failed);
-    client.on("offline", failed);
+    client.on("error", error => failed("error", error));
+    client.on("close", () => failed("close"));
+    client.on("offline", () => failed("offline"));
   }
 
   publish(action, payload, onError) {

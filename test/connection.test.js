@@ -56,3 +56,39 @@ test("denied subscriptions never enable commands", () => {
   connection.disconnect();
 });
 
+test("disconnect diagnostics preserve the first cause without credentials or error text", () => {
+  const { connection, client } = fixture();
+  client.emit("connect");
+  client.emit("error", Object.assign(new Error("Keepalive timeout; private test text"), { code: "ETIMEDOUT" }));
+  client.emit("close");
+  const info = connection.diagnostics();
+  assert.equal(info.successfulConnections, 1);
+  assert.equal(info.lastFailure.event, "error");
+  assert.equal(info.lastFailure.code, "ETIMEDOUT");
+  assert.equal(info.lastFailure.keepaliveTimeout, true);
+  assert.equal(info.lastFailure.clientId, client.options.clientId);
+  assert.ok(!JSON.stringify(info).includes("private test text"));
+  connection.disconnect();
+});
+
+test("application errors are reported without payloads and do not stop later messages", () => {
+  const { connection, client } = fixture();
+  const previousError = console.error;
+  const errors = [];
+  let calls = 0;
+  console.error = (...args) => errors.push(args);
+  connection.onMessage = (topic, data, bytes) => {
+    assert.equal(bytes, 2);
+    if (++calls === 1) throw new Error("payload must not appear in logs");
+  };
+  try {
+    client.emit("message", TOPICS.telemetry, Buffer.from("{}"), { retain: false });
+    client.emit("message", TOPICS.telemetry, Buffer.from("{}"), { retain: false });
+    assert.equal(calls, 2);
+    assert.deepEqual(errors, [["MQTT application callback failed."]]);
+  } finally {
+    console.error = previousError;
+    connection.disconnect();
+  }
+});
+

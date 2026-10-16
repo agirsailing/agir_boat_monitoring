@@ -1,7 +1,10 @@
 import { finite } from "./state.js";
 
 const el = id => document.getElementById(id);
-const setText = (id, value) => { el(id).textContent = value; };
+const setText = (id, value) => {
+  const element = el(id);
+  if (element.textContent !== value) element.textContent = value;
+};
 const format = (value, decimals = 1) => finite(value) ? value.toFixed(decimals) : "—";
 
 export function renderDashboard(state, demo) {

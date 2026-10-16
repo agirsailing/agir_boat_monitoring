@@ -70,6 +70,65 @@ type does not place a buoy or send commands; these controls are placeholders.
 
 ## Architecture
 
+### Investigating growing display latency
+
+Incoming state and recording replies are processed immediately. DOM rendering
+is scheduled with at most one pending animation frame, using the latest state;
+GPS/map updates run only for a new position snapshot, expiry or visibility change.
+This avoids a paint for every packet in a burst. It does not purge network queues
+or establish the cause of a particular deployment's latency. Application errors
+are reported separately from malformed MQTT JSON, without logging payloads.
+
+After deploying, keep the dashboard in the foreground and compare
+`/ultrasonic/left`, `/web/ros/dashboard` and the displayed left distance for at
+least ten minutes. In the browser developer console, capture this at startup,
+three minutes and when the delay occurs:
+
+```js
+JSON.stringify(window.agirDiagnostics(), null, 2)
+```
+
+The function returns fixed-size counters only, with no credentials or payload
+history. Counters reset on a page reload. Relevant fields:
+
+- `snapshotAgeAtReceiveMs`: browser clock minus the dashboard header timestamp
+  at MQTT callback time. Includes PC/Pi clock offset and browser callback delays;
+  it is not an isolated network measurement. Synchronize clocks for absolute ages.
+- `addedAgeSinceBestMs`: increase over the smallest observed age in this page
+  session. A growing value indicates increasing age even with a constant clock
+  offset; clock corrections or multiple publishers can invalidate that comparison.
+- `lastEventLoopLagMs` / `maxEventLoopLagMs`: excess delay of the 250 ms UI timer.
+  High values suggest a busy/throttled browser. Background tabs can be throttled,
+  so compare only foreground tests.
+- `lastPaintMs` / `maxPaintMs`: JavaScript time spent updating the interface,
+  excluding the browser's subsequent layout/paint/GPU work.
+- `sinceLastReceiveMs`: silence since the last dashboard packet. More than
+  `dataTimeoutMs` makes its displayed values expire.
+- `ultrasonicLeftValid` / `ultrasonicRightValid`: last received validity flags;
+  false means the gateway already marked the sample invalid.
+- `renderErrors`: interface update failures; inspect console error notices.
+- `mqtt`: current client ID, successful connection count, and the last failure's
+  UTC time, event, error code and keepalive-timeout indicator. The first failure
+  is preserved when a subsequent close event occurs. Error text is not retained.
+- `dashboardMessages`, `dashboardPayloadBytes`, `trackPoints`: traffic and map
+  history counters useful for comparing early and late observations. The GPS
+  track still retains the current session's history.
+
+Increasing receive age with a responsive event loop points towards the delivery
+path; a busy event loop can delay MQTT callbacks as well as rendering. Confirm
+with a separate minimal MQTT subscriber before blaming the broker. This diagnostic
+does not replace testing against the real Raspberry and broker.
+
+If the Pi and browser disconnect together, correlate these times with EMQX
+deployment logs before attributing the issue to rendering. For EMQX Serverless,
+check the documented per-client publish limit as well as deployment-wide TPS.
+The telemetry gateway uses one connection for dashboard, map and recording
+state: at a 4 Hz snapshot rate and 2 Hz recording state, this is approximately
+10 publishes/s, not 4. A diagnostic trial at 2 Hz reduces it to approximately
+6 publishes/s without changing sensor acquisition. Rebuild/restart the gateway
+after changing its YAML; its timer is created at startup. This is a hypothesis
+test, not proof that a broker quota caused the disconnects.
+
 GitHub Pages serves the files to the operator's browser. The browser then
 connects directly to an Internet-accessible MQTT broker over **WSS**.
 The Raspberry connects to the same broker using MQTT over TLS.
