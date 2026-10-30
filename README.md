@@ -15,7 +15,7 @@ legible. Both original images are preserved unchanged.
 Publish this folder on GitHub Pages, including the `pages/` directory, and open
 the site's HTTPS address. No local server or application backend is needed.
 Choose **Explore demo** to inspect simulated instruments without a broker.
-Demo mode disables recording commands. ES modules require HTTP/HTTPS; opening
+Demo mode disables recording and ping commands. ES modules require HTTP/HTTPS; opening
 index.html as a file is not supported.
 
 ## Dashboard and Map
@@ -64,9 +64,31 @@ The track is held only in memory, not saved on the boat or in browser storage.
 fresh GPS position, preserving the boat marker, direction and follow setting.
 Without a valid fix it clears the track and waits for the next valid position.
 
-The toolbar reserves **Draw**, **Ping** (currently disabled),
-and a buoy-type selector with **PIN**, **COMITATO**, **BOLINA**. Selecting a
-type does not place a buoy or send commands; these controls are placeholders.
+Select **Committee**, **Pin** or **Windward**, then press **Ping** when the boat
+is at the desired position. ROS captures its latest fresh GPS fix when handling
+the request; the browser sends only the type, not its possibly delayed coordinates.
+There is one buoy per type: another ping replaces that buoy. The button requires
+a live broker session and a fresh, valid map from the updated boat software.
+Confirmation/errors appear below the toolbar. Markers come from the periodic boat
+state, never an optimistic local placement; lost replies do not lose saved buoys.
+
+Only the MQTT account **`agir-staff`** can ping through the web app. **`agir-guest`**
+and unlisted usernames can view buoys but have Ping and the type selector disabled.
+The allowlist is `STAFF_USERNAMES` in `config.js`; names match case-sensitively.
+The app uses the successfully connected account, not subsequent edits to the login
+form. The state and MQTT send functions also reject viewer pings. Reconnecting or
+logging in as another user recalculates permission; demo mode cannot ping.
+
+This is a UI policy, not broker authorization. Configure EMQX to deny guest
+publication on `agir_gui/cmd/ping_mark` and allow it for `agir-staff`. Both accounts
+need to subscribe to `agir_gui/data/map`; only Staff needs ping replies on
+`agir_gui/rsp/ping_mark`. The existing recording subscriptions remain in use.
+The web app does not modify broker permissions, and browser code can be bypassed.
+
+Buoys survive a page reload, another browser joining, and temporary GPS loss.
+They are stored in the telemetry node's memory and reset when that node restarts;
+there is no disk persistence yet. A stale/disconnected map hides the buoys until a
+fresh state arrives. **Reset track** does not erase buoys. **Draw** remains disabled.
 
 ## Architecture
 
@@ -157,8 +179,8 @@ The broker and the boat must be online; Pages alone is not an MQTT broker.
 
 | Credential | Publish | Subscribe |
 | --- | --- | --- |
-| Boat | `agir_gui/data/#`, `agir_gui/rsp/#` | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording` |
-| Operator | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording` | `agir_gui/data/#`, `agir_gui/rsp/#` |
+| Boat | `agir_gui/data/#`, `agir_gui/rsp/#` | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording`, `agir_gui/cmd/ping_mark` |
+| Operator | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording`, `agir_gui/cmd/ping_mark` | `agir_gui/data/#`, `agir_gui/rsp/#` |
 
 The app keeps connection credentials only in the current page's memory, for
 reconnection, and releases references on Disconnect/page exit. It does not use
@@ -184,6 +206,21 @@ No ROS endpoint generator is run by this website.
 | `agir_gui/data/recording_state` | recording (boolean), bag_name, last_error |
 | `agir_gui/cmd/start_recording` and `stop_recording` | JSON object with a unique requestId |
 | `agir_gui/rsp/start_recording` and `stop_recording` | requestId, success, error_message, bag_name |
+| `agir_gui/cmd/ping_mark` | `{"requestId":"unique-id","type":0}`; Committee=0, Pin=1, Windward=2 |
+| `agir_gui/rsp/ping_mark` | requestId, success, error_message, mark (null on failure) |
+
+`agir_gui/data/map` also contains `marks`: an array of at most three objects with
+`type`, `lat`, `lon`, and `header` (original GPS sample timestamp and frame).
+Coordinates are WGS84 decimal degrees, double precision. A fresh map includes the
+saved marks even when `fix_valid` is false. Requests and responses are non-retained;
+commands use QoS 1 and unique request IDs. Duplicate pings reuse the cached reply
+within the running command gateway's bounded cache instead of recapturing GPS.
+There is no automatic retry after a timeout or reconnect: inspect the returned
+map before pinging again. Map updates remain at the configured map rate (3 Hz).
+
+Deploy ROS and the web app together: regenerate/build `sail_msgs` and its consumers
+after adding `PingMark` and changing `Mark`/`MapDataMsg`. An older boat map without
+`marks` leaves Ping disabled. Existing dashboard and recording contracts are unchanged.
 
 Yaw is relative to IMU startup, **not north**. Height refers to the design
 waterline below the centre of mass and can be negative. The battery card shows
@@ -202,7 +239,7 @@ Ultrasonic fields are `ultrasonic_left_m`, `ultrasonic_left_valid`,
 `ultrasonic_right_m`, `ultrasonic_right_valid`. Each side is validated independently.
 Older gateways without these fields show dashes until ROS is rebuilt and restarted.
 
-Commands require a connected/subscribed client and a fresh recording state.
+Recording commands require a connected/subscribed client and a fresh recording state.
 They use QoS 1, retain=false and request IDs matched against the correct reply
 topic. A broker acknowledgment alone is not ROS confirmation. There is no
 automatic retry of commands: after a lost reply (22-second timeout) or an outage,

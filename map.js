@@ -1,4 +1,5 @@
 import { finite } from "./state.js";
+import { MARK_NAMES, validMarks } from "./marks.js";
 
 export const STOCKHOLM = [59.3293, 18.0686];
 
@@ -24,6 +25,8 @@ export class BoatMap {
     this.visible = false;
     this.trackSegments = [];
     this.activeTrack = null;
+    this.marks = [];
+    this.buoyMarkers = new Map();
     followButton.addEventListener("click", () => {
       this.setFollow(!this.follow);
       if (this.follow && this.marker) this.map.panTo(this.marker.getLatLng());
@@ -57,6 +60,7 @@ export class BoatMap {
       }).addTo(this.map);
       this.map.on("dragstart", () => this.setFollow(false));
       for (const segment of this.trackSegments) this.drawTrackSegment(segment);
+      this.updateMarks(this.marks);
     }
     this.map.invalidateSize({ pan: false });
   }
@@ -65,6 +69,35 @@ export class BoatMap {
     segment.layer = globalThis.L.polyline(segment.points, {
       color: "#126c69", weight: 3, opacity: 0.8, interactive: false,
     }).addTo(this.map);
+  }
+
+  updateMarks(marks) {
+    this.marks = validMarks(marks) ? marks : [];
+    if (!this.map) return;
+    const types = new Set(this.marks.map(mark => mark.type));
+    for (const [type, marker] of this.buoyMarkers) {
+      if (!types.has(type)) {
+        marker.remove();
+        this.buoyMarkers.delete(type);
+      }
+    }
+    for (const mark of this.marks) {
+      const position = [mark.lat, mark.lon];
+      const existing = this.buoyMarkers.get(mark.type);
+      if (existing) {
+        existing.setLatLng(position);
+      } else {
+        const label = MARK_NAMES[mark.type];
+        const marker = globalThis.L.marker(position, {
+          title: label,
+          icon: globalThis.L.divIcon({
+            className: `buoy-marker buoy-${mark.type}`, iconSize: [28, 28], iconAnchor: [14, 14],
+            html: `<span aria-hidden="true">${label[0]}</span>`,
+          }),
+        }).bindTooltip(label, { permanent: true, direction: "top" }).addTo(this.map);
+        this.buoyMarkers.set(mark.type, marker);
+      }
+    }
   }
 
   recordPosition(position) {

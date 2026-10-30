@@ -4,17 +4,18 @@
           <div class="map-controls" role="group" aria-label="Map controls">
             <button id="reset-track" class="button secondary" type="button" title="Clear the track and restart from the current GPS position">Reset track</button>
             <button id="draw-track" class="button secondary" type="button" disabled title="Coming soon">Draw</button>
-            <button id="ping-buoy" class="button secondary" type="button" disabled title="Coming soon">Ping</button>
+            <button id="ping-buoy" class="button secondary" type="button" disabled title="Save the boat's current GPS position as the selected buoy">Ping</button>
             <label class="buoy-type-label" for="buoy-type">Buoy type</label>
             <select id="buoy-type" class="button secondary" aria-label="Buoy type">
-              <option value="PIN">PIN</option>
-              <option value="COMITATO">COMITATO</option>
-              <option value="BOLINA">BOLINA</option>
+              <option value="1">Pin</option>
+              <option value="0">Committee</option>
+              <option value="2">Windward</option>
             </select>
             <button id="follow-boat" class="button secondary" type="button" aria-pressed="true">Follow boat: on</button>
           </div>
         </div>
+        <p id="ping-status" class="muted" role="status">Guests can view saved buoys. Staff can ping with a fresh GPS fix.</p>
         <p id="map-error" class="error" role="alert" hidden></p>
         <div id="boat-map" aria-label="Live boat position map"></div>
-        <p class="muted map-note">The line shows the boat's GPS track for this session, with gaps when GPS is unavailable. Reset track clears the line and starts again at the current GPS position, or the next valid fix if GPS is unavailable. Arrow direction is estimated from GPS movement; it is not a compass heading. Draw, Ping and buoy placement are coming soon.</p>
+        <p class="muted map-note">Ping saves the boat's GPS position as Committee, Pin or Windward. Pinging the same type replaces it. Saved buoys survive page reloads and GPS gaps, until the boat software restarts. Reset track only clears the boat's track. The arrow shows direction estimated from GPS movement, not compass heading. Draw is coming soon.</p>
       </section>

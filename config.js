@@ -7,8 +7,14 @@ export const TOPICS = Object.freeze({
   stop: "agir_gui/cmd/stop_recording",
   startResponse: "agir_gui/rsp/start_recording",
   stopResponse: "agir_gui/rsp/stop_recording",
+  ping: "agir_gui/cmd/ping_mark",
+  pingResponse: "agir_gui/rsp/ping_mark",
 });
 
+
+// UI permissions only: the broker must independently enforce publish ACLs.
+// Match MQTT usernames exactly (case-sensitive); unknown accounts are viewers.
+export const STAFF_USERNAMES = Object.freeze(["agir-staff"]);
 
 export const SETTINGS = Object.freeze({
   dataTimeoutMs: 3000,

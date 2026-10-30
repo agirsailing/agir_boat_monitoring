@@ -5,6 +5,7 @@ import { BoatMap } from "./map.js";
 import { mountPages, showPage } from "./pages.js";
 import { renderDashboard } from "./dashboard.js";
 import { createRenderScheduler, LiveDiagnostics } from "./live-runtime.js";
+import { MARK_NAMES } from "./marks.js";
 
 async function startApp() {
   await mountPages(document.getElementById("page-content"));
@@ -40,6 +41,7 @@ async function startApp() {
   let linkStatus = "disconnected";
   const setText = (id, value) => { el(id).textContent = value; };
   const feedback = text => setText("command-status", text);
+  const pingFeedback = text => setText("ping-status", text);
   const connectionError = text => {
     setText("connection-error", text);
     el("connection-error").hidden = !text;
@@ -49,15 +51,31 @@ async function startApp() {
     linkStatus = status;
     if (status !== "connected") {
       if (state.pending) feedback("Connection lost. Command outcome unknown; check the next boat state.");
+      pingFeedback(state.pingPending
+        ? "Connection lost. Ping outcome unknown; check the map after reconnecting."
+        : "Connect and wait for a fresh GPS fix to ping a buoy.");
       state.reset();
       boatMap.reset();
+      boatMap.updateMarks([]);
     } else {
       state.ready = true;
+      state.pingAllowed = connection.canPing;
       feedback("Connected. Waiting for the boat's recording state.");
+      pingFeedback(state.pingAllowed
+        ? "Select a buoy type and ping when the boat is at that position."
+        : "View only: you can see saved buoys. Only Staff can ping them.");
     }
     render();
   }, (topic, data, payloadBytes) => {
     if (topic === TOPICS.telemetry) diagnostics.receive(data, payloadBytes);
+    const pingResponse = state.pingResponse(topic, data);
+    if (pingResponse) {
+      pingFeedback(pingResponse.success
+        ? `${MARK_NAMES[pingResponse.mark.type]} saved by the boat. The map updates automatically.`
+        : "Ping not confirmed: " + pingResponse.error_message);
+      render();
+      return;
+    }
     const response = state.response(topic, data);
     if (response) {
       feedback(response.success
@@ -93,10 +111,17 @@ async function startApp() {
       lastHash = location.hash;
     }
     boatMap.show(isLogged && page === "map");
+    el("ping-buoy").disabled = demo || !state.canPing();
+    el("buoy-type").disabled = demo || !state.pingAllowed || !!state.pingPending;
+    el("ping-buoy").title = demo ? "Ping is unavailable in demo mode"
+      : !state.pingAllowed ? "Only Staff can ping buoys"
+      : "Save the boat's current GPS position as the selected buoy";
+    el("ping-buoy").textContent = state.pingPending ? "Pinging…" : "Ping";
     const mapSample = state.fresh("position");
     // Telemetry and recording packets do not require another GPS/map update.
     if (mapSample !== lastMapSample || boatMap.visible !== lastMapVisible) {
       boatMap.update(values);
+      boatMap.updateMarks(state.marks());
       lastMapSample = mapSample;
       lastMapVisible = boatMap.visible;
     }
@@ -112,6 +137,7 @@ async function startApp() {
     demo = false;
     state.reset();
     boatMap.reset({ clearTrack: true });
+    boatMap.updateMarks([]);
   }
 
   el("connect-form").addEventListener("submit", event => {
@@ -151,6 +177,25 @@ async function startApp() {
   }
   el("start").addEventListener("click", () => command("start"));
   el("stop").addEventListener("click", () => command("stop"));
+
+  el("ping-buoy").addEventListener("click", () => {
+    if (demo || state.pingPending) return;
+    const requestId = crypto.randomUUID();
+    try {
+      const payload = state.beginPing(Number(el("buoy-type").value), requestId);
+      pingFeedback("Ping sent. Waiting for confirmation from the boat…");
+      connection.publish("ping", payload, () => {
+        if (state.pingPending?.requestId !== requestId) return;
+        state.pingPending = null;
+        pingFeedback("Ping delivery failed. Outcome unknown; check the map before retrying.");
+        render();
+      });
+    } catch (error) {
+      if (state.pingPending?.requestId === requestId) state.pingPending = null;
+      pingFeedback(error.message);
+    }
+    render();
+  });
 
   el("demo").addEventListener("click", () => {
     if (demo) {
@@ -194,6 +239,7 @@ async function startApp() {
   setInterval(() => {
     diagnostics.tick(250);
     if (state.expire()) feedback("No reply received. Outcome unknown; check the next boat state before retrying.");
+    if (state.expirePing()) pingFeedback("No ping reply received. Outcome unknown; check the map before retrying.");
     render();
   }, 250);
 

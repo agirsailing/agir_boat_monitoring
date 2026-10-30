@@ -10,24 +10,28 @@ class Client extends EventEmitter {
   publish(...args) { this.sent.push(args); }
   end(force) { this.ended = force; this.connected = false; }
 }
-function fixture() {
+function fixture(username = "agir-staff") {
   const statuses = [], messages = [], clients = [];
   const library = { connect: (url, options) => {
     const client = new Client(options); clients.push(client); return client;
   }};
   const connection = new BrokerConnection(s => statuses.push(s), (...m) => messages.push(m), library);
-  connection.connect("wss://example.org/mqtt", "operator", "placeholder");
+  connection.connect("wss://example.org/mqtt", username, "placeholder");
   return { connection, client: clients[0], statuses, messages };
 }
 test("subscribes to data and responses; recording commands are never retained", () => {
   const { connection, client } = fixture();
   client.emit("connect");
   assert.equal(connection.ready, true);
-  assert.equal(client.subscriptions.length, 5);
+  assert.equal(client.subscriptions.length, 6);
   assert.equal(client.options.clean, true);
   assert.equal(client.options.reconnectPeriod, 0);
   connection.publish("start", { requestId: "one" }, () => {});
   assert.deepEqual(client.sent[0].slice(0, 3), [TOPICS.start, '{"requestId":"one"}', { qos: 1, retain: false }]);
+  assert.ok(client.subscriptions.includes(TOPICS.pingResponse));
+  connection.publish("ping", { requestId: "ping-1", type: 0 }, () => {});
+  assert.deepEqual(client.sent[1].slice(0, 3), [TOPICS.ping,
+    '{"requestId":"ping-1","type":0}', { qos: 1, retain: false }]);
   connection.disconnect();
   assert.equal(connection.credentials, null);
   assert.equal(client.options.password, undefined);
@@ -46,6 +50,38 @@ test("ignores retained/malformed packets and closes the old session after an out
   assert.equal(statuses.at(-1), "reconnecting");
   client.emit("message", TOPICS.recording, Buffer.from("{}"), { retain: false });
   assert.equal(messages.length, 1);
+  connection.disconnect();
+});
+
+test("guest and unknown accounts can receive marks but cannot publish ping directly", () => {
+  for (const username of ["agir-guest", "unlisted-user"]) {
+    const { connection, client, messages } = fixture(username);
+    client.emit("connect");
+    assert.equal(connection.ready, true);
+    assert.equal(connection.canPing, false);
+    assert.ok(client.subscriptions.includes(TOPICS.position));
+    assert.ok(!client.subscriptions.includes(TOPICS.pingResponse));
+    assert.throws(() => connection.publish("ping", { requestId: "blocked", type: 1 }, () => {}), /Only Staff/);
+    assert.equal(client.sent.length, 0);
+    client.emit("message", TOPICS.position, Buffer.from(JSON.stringify({
+      fix_valid: true, marks: [{ type: 0, lat: 59.3, lon: 18.1 }],
+    })), { retain: false });
+    assert.equal(messages[0][1].marks[0].type, 0);
+    connection.disconnect();
+  }
+});
+
+test("staff permission follows the authenticated session, not form edits or a previous login", () => {
+  const { connection, client } = fixture("agir-staff");
+  assert.equal(connection.canPing, false);
+  client.emit("connect");
+  assert.equal(connection.canPing, true);
+  connection.disconnect();
+  assert.equal(connection.canPing, false);
+  connection.connect("wss://example.org/mqtt", "agir-guest", "placeholder");
+  connection.client.emit("connect");
+  assert.equal(connection.canPing, false);
+  assert.throws(() => connection.publish("ping", {}, () => {}), /Only Staff/);
   connection.disconnect();
 });
 test("denied subscriptions never enable commands", () => {

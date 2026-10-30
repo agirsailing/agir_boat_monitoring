@@ -576,3 +576,16 @@ footer>span:first-child {
     font-size:10px;
   }
 }
+/* Saved course marks: labels stay readable independently of boat heading. */
+.buoy-marker {
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 1px 5px #0006;
+}
+.buoy-0 { background: #2457a7; }
+.buoy-1 { background: #b64814; }
+.buoy-2 { background: #7944a2; }

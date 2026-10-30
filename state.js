@@ -1,4 +1,5 @@
 import { TOPICS, SETTINGS } from "./config.js";
+import { MARK_NAMES, validMark, validMarks } from "./marks.js";
 
 export const finite = value => typeof value === "number" && Number.isFinite(value);
 
@@ -19,7 +20,9 @@ export class DashboardState {
   reset() {
     this.samples = {};
     this.pending = null;
+    this.pingPending = null;
     this.ready = false;
+    this.pingAllowed = false;
   }
 
   ingest(topic, data) {
@@ -46,6 +49,46 @@ export class DashboardState {
 
   recording() {
     return this.fresh("recording", SETTINGS.recordingTimeoutMs);
+  }
+
+  marks() {
+    const marks = this.fresh("position")?.marks;
+    return validMarks(marks) ? marks : [];
+  }
+
+  canPing() {
+    const position = this.fresh("position");
+    const values = this.values();
+    // Requiring marks also avoids sending pings to an older boat deployment.
+    return this.ready && this.pingAllowed && !this.pingPending && validMarks(position?.marks) &&
+      values.latitude !== null && values.longitude !== null;
+  }
+
+  beginPing(type, requestId) {
+    if (!this.pingAllowed) throw new Error("Only Staff can ping buoys. You can view saved buoys on the map.");
+    if (!this.canPing()) throw new Error("Wait for a fresh GPS fix and map state from the boat.");
+    if (!Number.isInteger(type) || !Object.hasOwn(MARK_NAMES, type)) {
+      throw new Error("Select a valid buoy type.");
+    }
+    this.pingPending = { type, requestId, at: this.now() };
+    return { requestId, type };
+  }
+
+  pingResponse(topic, data) {
+    const pending = this.pingPending;
+    if (!pending || topic !== TOPICS.pingResponse || !data ||
+        data.requestId !== pending.requestId || typeof data.success !== "boolean" ||
+        typeof data.error_message !== "string" ||
+        (data.success && (!validMark(data.mark) || data.mark.type !== pending.type))) return null;
+    this.pingPending = null;
+    // Only the periodic map state updates markers, including after a lost reply.
+    return data;
+  }
+
+  expirePing() {
+    if (!this.pingPending || this.now() - this.pingPending.at < SETTINGS.commandTimeoutMs) return false;
+    this.pingPending = null;
+    return true;
   }
 
   canCommand(action) {
