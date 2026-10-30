@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { PAGES, mountPages, pageFromHash, showPage } from "../pages.js";
+import { PAGES, mountPages, pageFromHash, showPage } from "../src/ui/pages.js";
 
 test("all views load from relative static assets with unique IDs across the shell", async () => {
   const container = { innerHTML: "" };
@@ -14,7 +14,7 @@ test("all views load from relative static assets with unique IDs across the shel
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length);
   for (const name of Object.keys(PAGES)) assert.ok(ids.includes(`${name}-page`));
-  for (const module of ["app.js", "dashboard.js"]) {
+  for (const module of ["src/app.js", "src/ui/dashboard.js"]) {
     const source = await readFile(new URL(`../${module}`, import.meta.url), "utf8");
     for (const match of source.matchAll(/(?:el|setText|getElementById)\("([^"]+)"/g)) {
       assert.ok(ids.includes(match[1]), `Missing ${match[1]} used by ${module}`);

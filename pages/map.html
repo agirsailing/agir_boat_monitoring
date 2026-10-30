@@ -3,7 +3,7 @@
           <p id="map-status" class="muted" role="status">Waiting for a GPS fix · Stockholm</p>
           <div class="map-controls" role="group" aria-label="Map controls">
             <button id="reset-track" class="button secondary" type="button" title="Clear the track and restart from the current GPS position">Reset track</button>
-            <button id="draw-track" class="button secondary" type="button" disabled title="Coming soon">Draw</button>
+            <button id="draw-track" class="button secondary" type="button" disabled title="Committee and Pin are required">Draw</button>
             <button id="ping-buoy" class="button secondary" type="button" disabled title="Save the boat's current GPS position as the selected buoy">Ping</button>
             <label class="buoy-type-label" for="buoy-type">Buoy type</label>
             <select id="buoy-type" class="button secondary" aria-label="Buoy type">
@@ -17,5 +17,6 @@
         <p id="ping-status" class="muted" role="status">Guests can view saved buoys. Staff can ping with a fresh GPS fix.</p>
         <p id="map-error" class="error" role="alert" hidden></p>
         <div id="boat-map" aria-label="Live boat position map"></div>
-        <p class="muted map-note">Ping saves the boat's GPS position as Committee, Pin or Windward. Pinging the same type replaces it. Saved buoys survive page reloads and GPS gaps, until the boat software restarts. Reset track only clears the boat's track. The arrow shows direction estimated from GPS movement, not compass heading. Draw is coming soon.</p>
+        <p class="muted map-note">Ping saves the boat's GPS position as Committee, Pin or Windward. Pinging the same type replaces it. Saved buoys survive page reloads and GPS gaps, until the boat software restarts. Reset track only clears the boat's track. The arrow shows direction estimated from GPS movement, not compass heading. Draw connects Committee and Pin with an orange dashed start line. Clear line removes only that line, keeping the buoys and boat track.</p>
       </section>
+

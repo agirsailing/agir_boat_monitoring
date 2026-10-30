@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isStaff } from "../permissions.js";
-import { DashboardState } from "../state.js";
-import { TOPICS } from "../config.js";
+import { isStaff } from "../src/core/permissions.js";
+import { DashboardState } from "../src/core/state.js";
+import { TOPICS } from "../src/config.js";
 
 test("only explicitly listed, case-sensitive staff usernames have ping UI permission", () => {
   assert.equal(isStaff("agir-staff"), true);

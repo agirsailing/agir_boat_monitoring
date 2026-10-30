@@ -1,4 +1,4 @@
-import { TOPICS, SETTINGS } from "./config.js";
+import { TOPICS, SETTINGS } from "../config.js";
 import { MARK_NAMES, validMark, validMarks } from "./marks.js";
 
 export const finite = value => typeof value === "number" && Number.isFinite(value);
@@ -54,6 +54,11 @@ export class DashboardState {
   marks() {
     const marks = this.fresh("position")?.marks;
     return validMarks(marks) ? marks : [];
+  }
+
+  canDraw() {
+    const marks = this.marks();
+    return marks.some(mark => mark.type === 0) && marks.some(mark => mark.type === 1);
   }
 
   canPing() {

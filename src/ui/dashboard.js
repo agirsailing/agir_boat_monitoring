@@ -1,4 +1,4 @@
-import { finite } from "./state.js";
+import { finite } from "../core/state.js";
 
 const el = id => document.getElementById(id);
 const setText = (id, value) => {

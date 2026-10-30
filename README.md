@@ -1,269 +1,67 @@
-# Ågir boat dashboard
+# Agir Boat Monitoring — Boat web app
 
-A first static HTML/CSS/JavaScript dashboard for the Agir ROS environment.
-No application backend, build step, or installation is needed for hosting.
-It uses MQTT.js 5.15.2 and Leaflet 1.9.4 from jsDelivr; fonts load from Google Fonts with a system
-fallback. These are external network dependencies, not broker credentials.
+**Agir Sailing Team · Project documentation**  
+_Last updated: 30/10/2026_
 
-Brand assets are stored in `assets/images/`. `Agir-4x4.png` is the vertical logo
-used as the favicon. `Agir-4x1_Text.png` is the horizontal logo used in the navbar
-and login screen. CSS hides its transparent side margins to keep the visible logo
-legible. Both original images are preserved unchanged.
+## Introduction
 
-## First look
+This repository contains the web app used to monitor boat data, follow navigation
+on the map, and send recording and buoy positioning commands.
 
-Publish this folder on GitHub Pages, including the `pages/` directory, and open
-the site's HTTPS address. No local server or application backend is needed.
-Choose **Explore demo** to inspect simulated instruments without a broker.
-Demo mode disables recording and ping commands. ES modules require HTTP/HTTPS; opening
-index.html as a file is not supported.
+The application uses HTML, CSS and native JavaScript modules. **It requires no
+React, Angular, application backend or build step:** GitHub Pages serves the files;
+the browser exchanges data with the boat through the MQTT broker.
 
-## Dashboard and Map
+This file provides an overview. Technical details are in the folder-specific READMEs.
 
-Use the navbar to switch between `#dashboard` and `#map`. Hash routes work on
-static hosts, support browser Back/Forward and keep the MQTT connection alive.
-The two views live in separate HTML files loaded into the common shell once:
+## Repository structure
 
-| File | Responsibility |
-| --- | --- |
-| `index.html` | Shared login, navbar, page heading and footer |
-| `pages/dashboard.html` | Instruments, ultrasonic distances and recording controls |
-| `pages/map.html` | Map container and follow control |
-| `pages.js` | View loading, route definitions and navigation |
-| `dashboard.js` | Dashboard display updates |
-| `map.js` | Map and boat marker updates |
-| `app.js` | Shared MQTT session, demo mode and commands |
+| Path | Contents | Further reading |
+|---|---|---|
+| [`.github/`](.github/) | Automatic deployment to GitHub Pages. | [Site deployment](.github/README.md) |
+| [`assets/`](assets/) | Styles and team logos. | [Visual assets](assets/README.md) |
+| [`pages/`](pages/) | HTML fragments for Dashboard and Map. | [HTML views](pages/README.md) |
+| [`src/`](src/) | Application coordination, state, communication and rendering. | [JavaScript code](src/README.md) |
+| [`test/`](test/) | Automated checks without a broker or boat. | [Tests and manual checks](test/README.md) |
+| [`index.html`](index.html) | Login, navbar, view container and initial loading. | [Pages and interface](pages/README.md) |
+| [`package.json`](package.json) | ES modules and test command. | [Running tests](test/README.md#running-tests) |
 
-The HTML views are fragments, not standalone entry points: use the site's
-`/#dashboard` or `/#map` links rather than opening files under `pages/` directly.
-All asset paths are relative so the site also works under a GitHub Pages project
-path. To add a view, add its HTML file, register it in `pages.js` and add a navbar
-link in `index.html`; keep its display logic in a separate JavaScript module.
+## How the system communicates
 
-The dashboard includes separate left/port and right/starboard ultrasonic distance
-cards in metres. These are raw beam distances, separate from corrected boat height.
-
-The [Leaflet map](https://leafletjs.com/reference) initializes at Stockholm
-(59.3293, 18.0686), zoom 13, with OpenStreetMap tiles and attribution.
-Map scripts and tiles require Internet access. The boat arrow uses absolute
-latitude/longitude from the position stream, never coordinate deltas. Follow is
-on by default; dragging the map turns it off, and the Follow boat button restores it.
-Its direction is estimated from successive GPS positions at least one metre apart,
-not from startup-relative IMU yaw. Before movement, direction is marked unavailable.
-An invalid or stale fix removes the arrow. Demo mode simulates a moving GPS position
-and both ultrasonic sensors, and is also accessible from the login screen.
-
-The map draws a GPS track for the current browser session, including samples
-received while viewing the dashboard or before first opening the map. Repeated
-coordinates are ignored. GPS gaps and connection interruptions start a new
-segment while preserving the previous track. Starting a new login or entering
-or exiting demo mode clears the track; reloading the page also clears it.
-The track is held only in memory, not saved on the boat or in browser storage.
-
-**Reset track** clears all previous track segments and restarts at the current
-fresh GPS position, preserving the boat marker, direction and follow setting.
-Without a valid fix it clears the track and waits for the next valid position.
-
-Select **Committee**, **Pin** or **Windward**, then press **Ping** when the boat
-is at the desired position. ROS captures its latest fresh GPS fix when handling
-the request; the browser sends only the type, not its possibly delayed coordinates.
-There is one buoy per type: another ping replaces that buoy. The button requires
-a live broker session and a fresh, valid map from the updated boat software.
-Confirmation/errors appear below the toolbar. Markers come from the periodic boat
-state, never an optimistic local placement; lost replies do not lose saved buoys.
-
-Only the MQTT account **`agir-staff`** can ping through the web app. **`agir-guest`**
-and unlisted usernames can view buoys but have Ping and the type selector disabled.
-The allowlist is `STAFF_USERNAMES` in `config.js`; names match case-sensitively.
-The app uses the successfully connected account, not subsequent edits to the login
-form. The state and MQTT send functions also reject viewer pings. Reconnecting or
-logging in as another user recalculates permission; demo mode cannot ping.
-
-This is a UI policy, not broker authorization. Configure EMQX to deny guest
-publication on `agir_gui/cmd/ping_mark` and allow it for `agir-staff`. Both accounts
-need to subscribe to `agir_gui/data/map`; only Staff needs ping replies on
-`agir_gui/rsp/ping_mark`. The existing recording subscriptions remain in use.
-The web app does not modify broker permissions, and browser code can be bypassed.
-
-Buoys survive a page reload, another browser joining, and temporary GPS loss.
-They are stored in the telemetry node's memory and reset when that node restarts;
-there is no disk persistence yet. A stale/disconnected map hides the buoys until a
-fresh state arrives. **Reset track** does not erase buoys. **Draw** remains disabled.
-
-## Architecture
-
-### Investigating growing display latency
-
-Incoming state and recording replies are processed immediately. DOM rendering
-is scheduled with at most one pending animation frame, using the latest state;
-GPS/map updates run only for a new position snapshot, expiry or visibility change.
-This avoids a paint for every packet in a burst. It does not purge network queues
-or establish the cause of a particular deployment's latency. Application errors
-are reported separately from malformed MQTT JSON, without logging payloads.
-
-After deploying, keep the dashboard in the foreground and compare
-`/ultrasonic/left`, `/web/ros/dashboard` and the displayed left distance for at
-least ten minutes. In the browser developer console, capture this at startup,
-three minutes and when the delay occurs:
-
-```js
-JSON.stringify(window.agirDiagnostics(), null, 2)
+```mermaid
+flowchart LR
+    pages["GitHub Pages"] -->|"HTML, CSS, JavaScript"| browser["Operator's browser"]
+    browser <-->|"MQTT over WSS"| broker["MQTT broker"]
+    broker <-->|"MQTT over TLS"| ros["ROS gateway on the boat"]
+    ros <--> onboard["Sensors, state and recording"]
 ```
 
-The function returns fixed-size counters only, with no credentials or payload
-history. Counters reset on a page reload. Relevant fields:
+GitHub Pages provides the interface but does not collect telemetry. Live data
+requires access to the broker and the onboard components publishing it.
 
-- `snapshotAgeAtReceiveMs`: browser clock minus the dashboard header timestamp
-  at MQTT callback time. Includes PC/Pi clock offset and browser callback delays;
-  it is not an isolated network measurement. Synchronize clocks for absolute ages.
-- `addedAgeSinceBestMs`: increase over the smallest observed age in this page
-  session. A growing value indicates increasing age even with a constant clock
-  offset; clock corrections or multiple publishers can invalidate that comparison.
-- `lastEventLoopLagMs` / `maxEventLoopLagMs`: excess delay of the 250 ms UI timer.
-  High values suggest a busy/throttled browser. Background tabs can be throttled,
-  so compare only foreground tests.
-- `lastPaintMs` / `maxPaintMs`: JavaScript time spent updating the interface,
-  excluding the browser's subsequent layout/paint/GPU work.
-- `sinceLastReceiveMs`: silence since the last dashboard packet. More than
-  `dataTimeoutMs` makes its displayed values expire.
-- `ultrasonicLeftValid` / `ultrasonicRightValid`: last received validity flags;
-  false means the gateway already marked the sample invalid.
-- `renderErrors`: interface update failures; inspect console error notices.
-- `mqtt`: current client ID, successful connection count, and the last failure's
-  UTC time, event, error code and keepalive-timeout indicator. The first failure
-  is preserved when a subsequent close event occurs. Error text is not retained.
-- `dashboardMessages`, `dashboardPayloadBytes`, `trackPoints`: traffic and map
-  history counters useful for comparing early and late observations. The GPS
-  track still retains the current session's history.
+## Features
 
-Increasing receive age with a responsive event loop points towards the delivery
-path; a busy event loop can delay MQTT callbacks as well as rendering. Confirm
-with a separate minimal MQTT subscriber before blaming the broker. This diagnostic
-does not replace testing against the real Raspberry and broker.
+| Feature | Current behaviour |
+|---|---|
+| Dashboard | Speed, attitude, estimated height, ultrasonic distances, position and battery. |
+| Recording | Start/Stop with confirmation from the onboard system and rosbag status. |
+| Map | Absolute position, arrow oriented by GPS movement and boat following. |
+| Track | Session path; Reset track clears it and starts again from the current position. |
+| Buoys | Committee, Pin and Windward display; Ping enabled for the staff account. |
+| Demo | Simulated data, without real recording or Ping commands. |
+| Draw / Clear line | Draws the start line between Committee and Pin, then allows clearing only the line while keeping buoys and track. Both buoys are required to draw it. |
 
-If the Pi and browser disconnect together, correlate these times with EMQX
-deployment logs before attributing the issue to rendering. For EMQX Serverless,
-check the documented per-client publish limit as well as deployment-wide TPS.
-The telemetry gateway uses one connection for dashboard, map and recording
-state: at a 4 Hz snapshot rate and 2 Hz recording state, this is approximately
-10 publishes/s, not 4. A diagnostic trial at 2 Hz reduces it to approximately
-6 publishes/s without changing sensor acquisition. Rebuild/restart the gateway
-after changing its YAML; its timer is created at startup. This is a hypothesis
-test, not proof that a broker quota caused the disconnects.
+Command conditions are described in the [pages guide](pages/README.md).
+Actual permissions must also be configured on the broker: the browser's staff
+check currently applies to **Ping**, not to every command.
 
-GitHub Pages serves the files to the operator's browser. The browser then
-connects directly to an Internet-accessible MQTT broker over **WSS**.
-The Raspberry connects to the same broker using MQTT over TLS.
+## Getting started
 
-```text
-Raspberry / ROS <-- MQTT over TLS --> broker <-- MQTT over WSS --> browser
-                                                                  ^
-                                                      HTML/CSS/JS from Pages
-```
+1. Open the HTTPS address of the [published site](https://agirsailing.github.io/agir_boat_monitoring/).
+2. To explore the interface, choose **Explore demo** on the login screen.
+3. For live data, enter the MQTT credentials assigned by the team and press **Connect to boat**.
+4. Wait for telemetry: **Broker connected** confirms the connection.
+5. Use the navbar to switch views while keeping the same MQTT session.
 
-The recording buttons call the existing ROS gateway through MQTT. MCAP files
-remain on the Raspberry: the website does not record or download them.
-The broker and the boat must be online; Pages alone is not an MQTT broker.
-
-## Credentials and broker setup
-
-1. Create a private broker/tenant that supports MQTT over TLS and secure
-   WebSockets. Copy its exact WSS URL, including the port and path, into the form.
-   Do not use the native MQTT/TLS port as a WebSocket port.
-2. Create a **boat MQTT client credential** and enter it into the ROS package's
-   local, Git-ignored `communication_web/config/mqtt_config.yaml`.
-3. Create a separate **operator MQTT client credential**. Enter it in the
-   dashboard form. This is not your HiveMQ/Mosquitto administrator account.
-4. Apply topic permissions on the broker (the exact UI depends on its plan).
-   Browser buttons and public source code are not authorization controls.
-
-| Credential | Publish | Subscribe |
-| --- | --- | --- |
-| Boat | `agir_gui/data/#`, `agir_gui/rsp/#` | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording`, `agir_gui/cmd/ping_mark` |
-| Operator | `agir_gui/cmd/start_recording`, `agir_gui/cmd/stop_recording`, `agir_gui/cmd/ping_mark` | `agir_gui/data/#`, `agir_gui/rsp/#` |
-
-The app keeps connection credentials only in the current page's memory, for
-reconnection, and releases references on Disconnect/page exit. It does not use
-cookies, localStorage or sessionStorage. Password-manager behaviour is controlled
-by the browser. The operator can inspect their own credentials in their browser;
-they are not exposed to other visitors through the hosted files.
-
-**Never embed a password in HTML, JavaScript, config.js or a GitHub Actions
-build.** GitHub Secrets do not provide private runtime variables to a static
-website: any value inserted into delivered JavaScript becomes visible.
-Gitignore does not protect a file that is already tracked or remove history.
-
-## Data contract
-
-`config.js` centralizes the MQTT topics. Keep it aligned with
-`sailing_ros/ros2_ws/src/communication_web/config/endpoints.yaml`.
-No ROS endpoint generator is run by this website.
-
-| MQTT topic | Data |
-| --- | --- |
-| `agir_gui/data/dashboard` | ROS DashboardDataMsg converted to JSON: timestamp; roll/pitch/yaw in aerospace degrees; height and left/right ultrasonic distances in metres; battery voltage and raw low alarm; SOG in m/s; validity flags |
-| `agir_gui/data/map` | ROS MapDataMsg converted to JSON: latitude/longitude in decimal degrees; SOG in m/s; GPS timestamp and fix validity |
-| `agir_gui/data/recording_state` | recording (boolean), bag_name, last_error |
-| `agir_gui/cmd/start_recording` and `stop_recording` | JSON object with a unique requestId |
-| `agir_gui/rsp/start_recording` and `stop_recording` | requestId, success, error_message, bag_name |
-| `agir_gui/cmd/ping_mark` | `{"requestId":"unique-id","type":0}`; Committee=0, Pin=1, Windward=2 |
-| `agir_gui/rsp/ping_mark` | requestId, success, error_message, mark (null on failure) |
-
-`agir_gui/data/map` also contains `marks`: an array of at most three objects with
-`type`, `lat`, `lon`, and `header` (original GPS sample timestamp and frame).
-Coordinates are WGS84 decimal degrees, double precision. A fresh map includes the
-saved marks even when `fix_valid` is false. Requests and responses are non-retained;
-commands use QoS 1 and unique request IDs. Duplicate pings reuse the cached reply
-within the running command gateway's bounded cache instead of recapturing GPS.
-There is no automatic retry after a timeout or reconnect: inspect the returned
-map before pinging again. Map updates remain at the configured map rate (3 Hz).
-
-Deploy ROS and the web app together: regenerate/build `sail_msgs` and its consumers
-after adding `PingMark` and changing `Mark`/`MapDataMsg`. An older boat map without
-`marks` leaves Ping disabled. Existing dashboard and recording contracts are unchanged.
-
-Yaw is relative to IMU startup, **not north**. Height refers to the design
-waterline below the centre of mass and can be negative. The battery card shows
-`battery_voltage_v` in volts and the raw GPIO `battery_low` alarm. These arrive
-through the gateway's direct BatteryData subscription. The battery sensor node
-also handles the shutdown policy. Charge percentage and overall battery health are not inferred.
-`battery_valid=false` makes both displays unknown. A null/missing voltage shows
-a dash even when the alarm remains known, including with older gateways.
-
-Invalid sensor flags and non-finite/missing numbers appear as a dash. Data
-expires by browser reception time after 3 seconds; recording state after
-5 seconds. Upstream sensor timestamps/validity are checked by the ROS gateway.
-Settings are centralized in `config.js`.
-
-Ultrasonic fields are `ultrasonic_left_m`, `ultrasonic_left_valid`,
-`ultrasonic_right_m`, `ultrasonic_right_valid`. Each side is validated independently.
-Older gateways without these fields show dashes until ROS is rebuilt and restarted.
-
-Recording commands require a connected/subscribed client and a fresh recording state.
-They use QoS 1, retain=false and request IDs matched against the correct reply
-topic. A broker acknowledgment alone is not ROS confirmation. There is no
-automatic retry of commands: after a lost reply (22-second timeout) or an outage,
-the outcome is unknown until fresh boat state arrives. A subsequent state is
-also required after a reply. Reconnection creates a fresh session and discards
-old outbound queues. Retained messages are ignored.
-
-## GitHub Pages (when ready)
-
-Upload this folder's contents to a separate GitHub repository. In its Pages
-settings, select the branch and root folder as the publishing source. Keep
-`index.html` at that root. Relative asset paths support project Pages URLs.
-There are no environment variables to configure and no build workflow is needed.
-Nothing has been published automatically.
-
-Only publish these web files. Never copy the Raspberry's MQTT YAML or ROS
-install directory into this repository. Publishing the site makes its interface
-and code accessible; broker authentication and ACLs protect boat data/commands.
-
-## Offline checks
-
-With Node.js installed, run `npm test` (or `node --test test/*.test.js`).
-The tests use fake MQTT clients and do not contact a broker, ROS or hardware.
-A real broker/Pi integration test still needs to be performed.
-
-Next iterations: agree on layout with the team, configure the broker and ACLs,
-verify real telemetry and recording responses, then decide on charts.
+The map and external libraries require Internet access. A dash `—` indicates
+a missing measurement.

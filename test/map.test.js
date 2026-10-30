@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BoatMap, STOCKHOLM, movementBearing } from "../map.js";
+import { BoatMap, STOCKHOLM, movementBearing } from "../src/ui/map.js";
 
 test("GPS bearing uses absolute coordinates and handles the antimeridian", () => {
   assert.equal(movementBearing([0, 0], [1, 0]), 0);

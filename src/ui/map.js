@@ -1,5 +1,5 @@
-import { finite } from "./state.js";
-import { MARK_NAMES, validMarks } from "./marks.js";
+import { finite } from "../core/state.js";
+import { MARK_NAMES, validMarks } from "../core/marks.js";
 
 export const STOCKHOLM = [59.3293, 18.0686];
 
@@ -27,6 +27,7 @@ export class BoatMap {
     this.activeTrack = null;
     this.marks = [];
     this.buoyMarkers = new Map();
+    this.startLine = null;
     followButton.addEventListener("click", () => {
       this.setFollow(!this.follow);
       if (this.follow && this.marker) this.map.panTo(this.marker.getLatLng());
@@ -98,6 +99,30 @@ export class BoatMap {
         this.buoyMarkers.set(mark.type, marker);
       }
     }
+    if (this.startLine) this.drawStartLine();
+  }
+
+  drawStartLine() {
+    const committee = this.marks.find(mark => mark.type === 0);
+    const pin = this.marks.find(mark => mark.type === 1);
+    if (!this.map || !committee || !pin) {
+      this.clearStartLine();
+      return false;
+    }
+    const points = [[committee.lat, committee.lon], [pin.lat, pin.lon]];
+    if (this.startLine) {
+      this.startLine.setLatLngs(points);
+    } else {
+      this.startLine = globalThis.L.polyline(points, {
+        color: "#d97706", weight: 4, opacity: 0.9, dashArray: "10 6",
+      }).bindTooltip("Start line · Committee — Pin").addTo(this.map);
+    }
+    return true;
+  }
+
+  clearStartLine() {
+    this.startLine?.remove();
+    this.startLine = null;
   }
 
   recordPosition(position) {

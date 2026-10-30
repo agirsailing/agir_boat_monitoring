@@ -1,11 +1,11 @@
 import { TOPICS } from "./config.js";
-import { DashboardState } from "./state.js";
-import { BrokerConnection } from "./mqtt-connection.js";
-import { BoatMap } from "./map.js";
-import { mountPages, showPage } from "./pages.js";
-import { renderDashboard } from "./dashboard.js";
-import { createRenderScheduler, LiveDiagnostics } from "./live-runtime.js";
-import { MARK_NAMES } from "./marks.js";
+import { DashboardState } from "./core/state.js";
+import { BrokerConnection } from "./services/mqtt-connection.js";
+import { BoatMap } from "./ui/map.js";
+import { mountPages, showPage } from "./ui/pages.js";
+import { renderDashboard } from "./ui/dashboard.js";
+import { createRenderScheduler, LiveDiagnostics } from "./core/live-runtime.js";
+import { MARK_NAMES } from "./core/marks.js";
 
 async function startApp() {
   await mountPages(document.getElementById("page-content"));
@@ -34,6 +34,16 @@ async function startApp() {
   });
   el("reset-track").addEventListener("click", () => {
     boatMap.resetTrack(state.values());
+    render();
+  });
+  el("draw-track").addEventListener("click", () => {
+    if (boatMap.startLine) {
+      boatMap.clearStartLine();
+    } else {
+      // Refresh marks at click time so expired positions cannot be drawn.
+      boatMap.updateMarks(state.marks());
+      if (state.canDraw()) boatMap.drawStartLine();
+    }
     render();
   });
   let demo = false;
@@ -125,6 +135,14 @@ async function startApp() {
       lastMapSample = mapSample;
       lastMapVisible = boatMap.visible;
     }
+
+    const hasStartLine = !!boatMap.startLine;
+    const canDraw = state.canDraw();
+    el("draw-track").textContent = hasStartLine ? "Clear line" : "Draw";
+    el("draw-track").disabled = !hasStartLine && !canDraw;
+    el("draw-track").title = hasStartLine ? "Clear only the start line"
+      : canDraw ? "Draw the start line between Committee and Pin"
+      : "Committee and Pin are required";
 
     if (isLogged && el("current-user")) {
       setText("current-user", demo ? "Demo user" : el("username").value);

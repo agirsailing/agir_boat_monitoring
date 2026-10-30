@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRenderScheduler, LiveDiagnostics } from "../live-runtime.js";
+import { createRenderScheduler, LiveDiagnostics } from "../src/core/live-runtime.js";
 
 test("bursts and a background pause keep one paint and show only the latest state", () => {
   const pending = new Map();

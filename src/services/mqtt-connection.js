@@ -1,6 +1,6 @@
-import { TOPICS, SETTINGS } from "./config.js";
-import { brokerUrl } from "./state.js";
-import { isStaff } from "./permissions.js";
+import { TOPICS, SETTINGS } from "../config.js";
+import { brokerUrl } from "../core/state.js";
+import { isStaff } from "../core/permissions.js";
 
 // Each reconnect creates a fresh MQTT session: never replay a queued recording command.
 export class BrokerConnection {

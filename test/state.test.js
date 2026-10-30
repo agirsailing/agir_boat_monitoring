@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DashboardState, brokerUrl } from "../state.js";
-import { TOPICS, SETTINGS } from "../config.js";
+import { DashboardState, brokerUrl } from "../src/core/state.js";
+import { TOPICS, SETTINGS } from "../src/config.js";
 
 const telemetry = {
   attitude_valid: true, roll_deg: 12, pitch_deg: 2, yaw_deg: 370,

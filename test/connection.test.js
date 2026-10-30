@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { BrokerConnection } from "../mqtt-connection.js";
-import { TOPICS } from "../config.js";
+import { BrokerConnection } from "../src/services/mqtt-connection.js";
+import { TOPICS } from "../src/config.js";
 
 class Client extends EventEmitter {
   constructor(options) { super(); this.options = options; this.connected = true; this.sent = []; }
