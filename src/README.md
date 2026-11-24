@@ -1,7 +1,7 @@
 # JavaScript code — Application coordination
 
 **Agir Boat Monitoring · `src/`**  
-_Last updated: 30/10/2026_
+_Last updated: 24/11/2026_
 
 [Project overview](../README.md) · [Tests](../test/README.md)
 
@@ -71,12 +71,26 @@ Values are defined in [`config.js`](config.js). The time values below are in mil
 
 | Constant | Value | Meaning |
 |---|---:|---|
-| `dataTimeoutMs` | 3000 | Dashboard and map sample expiry in the browser. |
+| `dataTimeoutMs` | 3000 | Dashboard/map maximum age, including transport time. |
+| `clockToleranceMs` | 1000 | Allowed future timestamp difference between boat and browser clocks. |
 | `recordingTimeoutMs` | 5000 | Recording state expiry. |
 | `commandTimeoutMs` | 22000 | Maximum wait for a Start, Stop or Ping response. |
 | `reconnectMs` | 5000 | Delay before retrying after a connection failure. |
 | `connectTimeoutMs` | 12000 | MQTT connection attempt timeout. |
 | `maxPayloadBytes` | 65536 | Maximum accepted message size. |
+
+Dashboard and map messages must include a valid `header.stamp`. Their age is
+checked against the browser clock when received and continues increasing while
+cached. Re-delivery does not make an old timestamp fresh. Expired data is hidden,
+and an expired map cannot enable buoy ping. Recent arrivals with old, missing or
+far-future timestamps display an explanation. Keep automatic clock synchronization
+enabled on the Raspberry and the viewing device: a clock behind the browser and
+network delay cannot be distinguished from timestamps alone.
+
+These headers timestamp gateway snapshots; ROS separately checks the age of each
+sensor used in a snapshot. `RecordingState` currently has no header and still uses
+the 5-second timeout since browser receipt. RPC responses are matched to the
+pending request as before.
 
 `TOPICS` contains the MQTT contract; `STAFF_USERNAMES` currently contains
 `agir-staff`. The broker address is in the `broker` field of

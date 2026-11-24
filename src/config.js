@@ -18,6 +18,8 @@ export const STAFF_USERNAMES = Object.freeze(["agir-staff"]);
 
 export const SETTINGS = Object.freeze({
   dataTimeoutMs: 3000,
+  // Small clock disagreement is tolerated; larger future stamps are rejected.
+  clockToleranceMs: 1000,
   recordingTimeoutMs: 5000,
   commandTimeoutMs: 22000,
   reconnectMs: 5000,

@@ -23,7 +23,8 @@ export function renderDashboard(state, demo) {
   const time = stamp && finite(stamp.sec) && finite(stamp.nanosec)
     ? new Date(stamp.sec * 1000 + stamp.nanosec / 1e6) : null;
   setText("timestamp", time && !Number.isNaN(time.valueOf()) ? time.toISOString() : "—");
-  setText("freshness", demo ? "Simulated data" : state.fresh("telemetry") ? "Receiving telemetry" : "Waiting for the boat");
+  setText("freshness", demo ? "Simulated data" : state.freshnessWarning() ||
+    (state.fresh("telemetry") ? "Receiving telemetry" : "Waiting for the boat"));
   const recording = state.recording();
   setText("recording-status", demo ? "Demo" : !recording ? "Unknown" : recording.recording ? "Recording" : "Idle");
   el("recording-status").dataset.tone = !demo && recording?.recording ? "alert" : "";

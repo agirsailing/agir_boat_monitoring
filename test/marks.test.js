@@ -4,9 +4,10 @@ import { DashboardState } from "../src/core/state.js";
 import { TOPICS, SETTINGS } from "../src/config.js";
 import { MARK_NAMES, validMark, validMarks } from "../src/core/marks.js";
 import { BoatMap } from "../src/ui/map.js";
+import { headerNow } from "./helpers.js";
 
 const mark = (type = 0, lat = 59.123456789, lon = 18.123456789) => ({ type, lat, lon });
-const position = marks => ({ fix_valid: true, latitude_deg: 59, longitude_deg: 18, marks });
+const position = marks => ({ header: headerNow(), fix_valid: true, latitude_deg: 59, longitude_deg: 18, marks });
 
 test("mark codes and coordinate validation preserve precision and reject malformed states", () => {
   assert.deepEqual(MARK_NAMES, { 0: "Committee", 1: "Pin", 2: "Windward" });

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { isStaff } from "../src/core/permissions.js";
 import { DashboardState } from "../src/core/state.js";
 import { TOPICS } from "../src/config.js";
+import { headerNow } from "./helpers.js";
 
 test("only explicitly listed, case-sensitive staff usernames have ping UI permission", () => {
   assert.equal(isStaff("agir-staff"), true);
@@ -17,6 +18,7 @@ test("viewers receive buoys but cannot start ping requests, even with fresh GPS"
   const marks = [{ type: 0, lat: 59.3, lon: 18.1 }];
   state.ready = true;
   state.ingest(TOPICS.position, {
+    header: headerNow(),
     fix_valid: true, latitude_deg: 59.3, longitude_deg: 18.1, marks,
   });
   assert.deepEqual(state.marks(), marks);
@@ -29,6 +31,7 @@ test("viewers receive buoys but cannot start ping requests, even with fresh GPS"
   state.reset();
   state.ready = true;
   state.ingest(TOPICS.position, {
+    header: headerNow(),
     fix_valid: true, latitude_deg: 59.3, longitude_deg: 18.1, marks,
   });
   assert.equal(state.pingAllowed, false);

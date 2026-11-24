@@ -100,6 +100,9 @@ async function startApp() {
   function paint() {
     const values = state.values();
     renderDashboard(state, demo);
+    const freshnessWarning = demo ? "" : state.freshnessWarning();
+    setText("map-freshness", freshnessWarning);
+    el("map-freshness").hidden = !freshnessWarning;
     const names = { disconnected: "Disconnected", connecting: "Connecting…",
       connected: "Broker connected", reconnecting: "Retrying connection…" };
     setText("connection-status", demo ? "Demo mode" : names[linkStatus]);

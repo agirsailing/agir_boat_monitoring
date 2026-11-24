@@ -3,6 +3,14 @@ import { MARK_NAMES, validMark, validMarks } from "./marks.js";
 
 export const finite = value => typeof value === "number" && Number.isFinite(value);
 
+function timestampMs(data) {
+  const stamp = data?.header?.stamp;
+  if (!Number.isInteger(stamp?.sec) || stamp.sec < 0 ||
+      !Number.isInteger(stamp?.nanosec) || stamp.nanosec < 0 || stamp.nanosec >= 1e9) return null;
+  const ms = stamp.sec * 1000 + stamp.nanosec / 1e6;
+  return ms > 0 && Number.isSafeInteger(stamp.sec * 1000) ? ms : null;
+}
+
 export function brokerUrl(value) {
   const url = new URL(value.trim());
   if (url.protocol !== "wss:" || url.username || url.password || url.search || url.hash) {
@@ -12,8 +20,9 @@ export function brokerUrl(value) {
 }
 
 export class DashboardState {
-  constructor(now = () => performance.now()) {
+  constructor(now = () => performance.now(), wallNow = () => Date.now()) {
     this.now = now;
+    this.wallNow = wallNow;
     this.reset();
   }
 
@@ -30,9 +39,9 @@ export class DashboardState {
     if (topic === TOPICS.telemetry && typeof data.attitude_valid === "boolean" &&
         typeof data.height_valid === "boolean" && typeof data.battery_valid === "boolean" &&
         typeof data.sog_valid === "boolean") {
-      this.samples.telemetry = { data, at: this.now() };
+      return this.ingestStamped("telemetry", data);
     } else if (topic === TOPICS.position && typeof data.fix_valid === "boolean") {
-      this.samples.position = { data, at: this.now() };
+      return this.ingestStamped("position", data);
     } else if (topic === TOPICS.recording && typeof data.recording === "boolean" &&
         typeof data.bag_name === "string" && typeof data.last_error === "string") {
       this.samples.recording = { data, at: this.now() };
@@ -42,9 +51,45 @@ export class DashboardState {
     return true;
   }
 
+  ingestStamped(name, data) {
+    const sourceAt = timestampMs(data);
+    const age = sourceAt === null ? Infinity : this.wallNow() - sourceAt;
+    // Ignore an older delivery while a newer sample is still usable. A new
+    // boat clock epoch can recover once that sample expires.
+    const previous = this.samples[name];
+    if (sourceAt !== null && previous?.sourceAt > sourceAt && this.fresh(name)) return false;
+    const issue = sourceAt === null ? "timestamp"
+      : age < -SETTINGS.clockToleranceMs ? "clock"
+      : age >= SETTINGS.dataTimeoutMs ? "delay" : null;
+    this.samples[name] = {
+      data, at: this.now(), sourceAt, ageAtReceipt: Math.max(0, age), issue,
+    };
+    return !issue;
+  }
+
   fresh(name, timeout = SETTINGS.dataTimeoutMs) {
     const sample = this.samples[name];
-    return sample && this.now() - sample.at < timeout ? sample.data : null;
+    if (!sample || sample.issue) return null;
+    const elapsed = this.now() - sample.at;
+    if (elapsed < 0 || elapsed >= timeout) return null;
+    if (name !== "recording") {
+      const age = this.wallNow() - sample.sourceAt;
+      // Monotonic time prevents clock corrections from rejuvenating a sample.
+      if (age < -SETTINGS.clockToleranceMs ||
+          Math.max(age, sample.ageAtReceipt + elapsed) >= timeout) return null;
+    }
+    // RecordingState currently has no header; it uses the receipt timeout.
+    return sample.data;
+  }
+
+  freshnessWarning() {
+    for (const name of ["telemetry", "position"]) {
+      const sample = this.samples[name];
+      if (!sample || this.now() - sample.at >= SETTINGS.dataTimeoutMs || this.fresh(name)) continue;
+      if (sample.issue === "timestamp") return "Boat data has no valid timestamp. Update the boat software.";
+      return "Boat data is delayed or device clocks are out of sync. Check the connection and automatic time on the Raspberry and this device.";
+    }
+    return "";
   }
 
   recording() {

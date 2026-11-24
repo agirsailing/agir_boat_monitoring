@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DashboardState, brokerUrl } from "../src/core/state.js";
 import { TOPICS, SETTINGS } from "../src/config.js";
+import { headerNow } from "./helpers.js";
 
 const telemetry = {
+  get header() { return headerNow(); },
   attitude_valid: true, roll_deg: 12, pitch_deg: 2, yaw_deg: 370,
   height_valid: true, height_m: -.1, battery_valid: true, battery_low: false,
   sog_valid: true, sog_mps: 6,
@@ -57,7 +59,7 @@ test("invalid values remain unknown and stale samples expire independently", () 
   assert.equal(s.values().height, -.1);
   assert.equal(s.values().battery, false);
   now = 2000;
-  s.ingest(TOPICS.position, { fix_valid: true, latitude_deg: 59, longitude_deg: 18, sog_mps: 5 });
+  s.ingest(TOPICS.position, { header: headerNow(), fix_valid: true, latitude_deg: 59, longitude_deg: 18, sog_mps: 5 });
   now = 3100;
   assert.equal(s.values().roll, null);
   assert.equal(s.values().latitude, 59);
@@ -109,7 +111,7 @@ test("malformed messages and out-of-range positions are not presented as valid",
   const s = new DashboardState();
   assert.equal(s.ingest(TOPICS.recording, { recording: "false" }), false);
   assert.equal(s.ingest(TOPICS.telemetry, []), false);
-  s.ingest(TOPICS.position, { fix_valid: true, latitude_deg: 181, longitude_deg: 12 });
+  s.ingest(TOPICS.position, { header: headerNow(), fix_valid: true, latitude_deg: 181, longitude_deg: 12 });
   assert.equal(s.values().latitude, null);
 });
 test("broker address must use WSS without embedded credentials", () => {
